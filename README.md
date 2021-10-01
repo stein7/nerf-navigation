@@ -1,3 +1,11 @@
+# NeRF-Navigation
+
+What follows is there readme of the nerf implmentation we used. For more infomation on the paper see the [paper page](https://mikh3x4.github.io/nerf-navigation/). 
+
+
+---
+
+
 # NeRF-pytorch
 
 

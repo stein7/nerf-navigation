@@ -11,9 +11,6 @@ abstract: Neural Radiance Fields (NeRFs) have recently emerged as a powerful par
 </div>
 <!-- </p> -->
 
-</br>
-
-
 <div class="d-none d-md-block abstract">
 	<h4> Abstract </h4>
 	{{page.abstract}}

@@ -7,7 +7,7 @@ abstract: Neural Radiance Fields (NeRFs) have recently emerged as a powerful par
 
 <!-- <div style="padding-top:56.25%" align="center"> -->
 <p align="center">
-<iframe width="100%" height="56.25%" src="https://www.youtube.com/embed/5JjWpv9BaaE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="100vw" height="75vw" src="https://www.youtube.com/embed/5JjWpv9BaaE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 </p>
 <!-- </div> -->
 

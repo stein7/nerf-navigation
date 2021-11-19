@@ -11,8 +11,10 @@ object_to_copy = bpy.data.objects["tim_drone"]
 def load_MPC(experiment_name):
     pass
 
-TYPE = "mpc"
-#TYPE = "train"
+#TYPE = "mpc"
+TYPE = "train"
+
+experiment_name = "stonehenge_with_fan"
 
 def load_training(experiment_name):
     collection = bpy.data.collections.new(experiment_name +"_"+TYPE)
@@ -74,6 +76,6 @@ def get_endpoints():
 
 
 
-experiment_name = "stonehenge_astar"
+
 
 load_training(experiment_name)

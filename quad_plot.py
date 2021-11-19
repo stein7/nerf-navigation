@@ -484,7 +484,7 @@ def main():
             "epochs_init": 2500,
             "fade_out_epoch": 0,
             "fade_out_sharpness": 10,
-            "epochs_update": 70,
+            "epochs_update": 250,
             }
 
     #playground
@@ -503,10 +503,10 @@ def main():
 
     #stonehenge
     renderer = get_nerf('configs/stonehenge.txt')
-    experiment_name = "stonehenge_astar" 
+    experiment_name = "stonehenge_with_fan_line" 
     start_pos = torch.tensor([0.39, -0.67, 0.2])
     end_pos = torch.tensor([-0.4, 0.55, 0.16])
-    astar = True
+    astar = False
     kernel = 4
     # experiment_name = "stonehenge_needle" 
     # # neadle
@@ -526,31 +526,31 @@ def main():
     # experiment_name = "church_top_a" 
     # start_pos = torch.tensor([-1.33, -1.02, 0.6])
     # end_pos = torch.tensor([-1.5, -0.49, 0.56])
-    church = True
+    # church = True
     # kernel = 2
 
-    renderer = get_nerf('configs/church.txt')
-    experiment_name = "church_acro2"
-    end_pos = torch.tensor([-1.24, -0.47, 0.56])
-    start_pos = torch.tensor([-1.46, -0.65, 0.84])
-    end_R =torch.tensor(((0.7071067690849304, -0.7071067690849304, 0.0, -1.2434672117233276),
-            (0.7071067690849304, 0.7071067690849304, 0.0, -0.46547752618789673),
-            (0.0, 0.0, 1.0, 0.5591349005699158),
-            (0.0, 0.0, 0.0, 1.0)))[:3,:3]
-    start_R =torch.tensor(((0.7071067690849304, 3.0908619663705394e-08, 0.7071067690849304, -1.4600000381469727),
-            (0.7071067690849304, -3.0908619663705394e-08, -0.7071067690849304, -0.6499999761581421),
-            (0.0, 1.0, -4.371138828673793e-08, 0.8399999737739563),
-            (0.0, 0.0, 0.0, 1.0)))[:3,:3]
-    astar = False
-    kernel = 2
-    cfg = {"T_final": 2,
-            "steps": 30,
-            "lr": 0.002,
-            "epochs_init": 2500,
-            "fade_out_epoch": 0,
-            "fade_out_sharpness": 10,
-            "epochs_update": 250,
-            }
+    # renderer = get_nerf('configs/church.txt')
+    # experiment_name = "church_acro2"
+    # end_pos = torch.tensor([-1.24, -0.47, 0.56])
+    # start_pos = torch.tensor([-1.46, -0.65, 0.84])
+    # end_R =torch.tensor(((0.7071067690849304, -0.7071067690849304, 0.0, -1.2434672117233276),
+    #         (0.7071067690849304, 0.7071067690849304, 0.0, -0.46547752618789673),
+    #         (0.0, 0.0, 1.0, 0.5591349005699158),
+    #         (0.0, 0.0, 0.0, 1.0)))[:3,:3]
+    # start_R =torch.tensor(((0.7071067690849304, 3.0908619663705394e-08, 0.7071067690849304, -1.4600000381469727),
+    #         (0.7071067690849304, -3.0908619663705394e-08, -0.7071067690849304, -0.6499999761581421),
+    #         (0.0, 1.0, -4.371138828673793e-08, 0.8399999737739563),
+    #         (0.0, 0.0, 0.0, 1.0)))[:3,:3]
+    # astar = False
+    # kernel = 2
+    # cfg = {"T_final": 2,
+    #         "steps": 30,
+    #         "lr": 0.002,
+    #         "epochs_init": 2500,
+    #         "fade_out_epoch": 0,
+    #         "fade_out_sharpness": 10,
+    #         "epochs_update": 250,
+    #         }
 
 
     # experiment_name = "test" 
@@ -607,18 +607,23 @@ def main():
         sim.dt = traj.dt #Sim time step changes best on number of steps
 
         if (basefolder / "mpc").exists():
-            (basefolder / "mpc").rmdir()
+            print((basefolder / "mpc"), "already exists!")
+            if input("Clear it before continuing? [y/N]:").lower() == "y":
+                shutil.rmtree((basefolder / "mpc"))
 
         (basefolder / "mpc").mkdir()
 
-        for step in range(cfg['steps']):
+        for step in range(traj.states.shape[0]):
             traj.save_data(basefolder / "mpc" / (str(step)+".json"))
 
             action = traj.get_next_action().clone().detach()
             print(action)
 
             state_noise = torch.normal(mean= 0, std=torch.tensor( [0.01]*3 + [0.01]*3 + [0]*9 + [0.005]*3 ))
-            state_noise[3] += -0.1 #crosswind
+
+            y = sim.get_current_state()[1]
+            if y < 0 and y > -0.2:
+                state_noise[3] += -0.25 #crosswind
 
             # sim.advance(action) # no noise
             sim.advance(action, state_noise) #add noise
@@ -631,6 +636,7 @@ def main():
             traj.learn_update()
 
             print("sim step", step)
+            continue
             if step % 5 !=0 or step == 0:
                 continue
 

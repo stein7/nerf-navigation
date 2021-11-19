@@ -9,6 +9,7 @@ from matplotlib.lines import Line2D
 import matplotlib.patches as mpatches
 
 
+
 # name = "playground_mpc_4"
 name = "playground_mpc_2"
 name = "stonehenge_mpc"
@@ -19,7 +20,10 @@ name = "stonehenge_mpc"
 
 # fig = plt.figure(figsize=plt.figaspect(8/11))
 fig = plt.figure(figsize=(11,8))
-ax = fig.add_subplot(1, 1, 1)
+ax_colision = fig.add_subplot(2, 1, 1)
+
+ax_control = fig.add_subplot(2, 1, 2)
+
 handles =[]
 # ax_twin = ax.twinx()
 
@@ -41,7 +45,9 @@ while 1:
 
 print(end_frame)
 
-taken_cost = []
+taken_cost_colision = []
+taken_cost_control = []
+
 for frame in range(end_frame):
     data = json.load(open("experiments/" + name +"/mpc/"+str(frame)+".json"))
 
@@ -50,23 +56,36 @@ for frame in range(end_frame):
 
     color = {0:pink, 10:blue, 18:green}.get(frame, "k")
 
+    #
+    colision_cost = data['colision_loss']
+    control_cost  = [x-y for x,y in zip(data['total_cost'], data['colision_loss'])]
 
-    ax.plot(frame + np.arange(len(data['total_cost'])), data['total_cost'], c =color, 
+    ax_colision.plot(frame + np.arange(len(colision_cost)), colision_cost, c =color, 
             alpha = 0.2 if color =="k" else 0.8,
             linewidth= 1 if color =='k' else 2)
-    taken_cost.append(data['total_cost'][0])
+
+    ax_control.plot(frame + np.arange(len(colision_cost)), colision_cost, c =color, 
+            alpha = 0.2 if color =="k" else 0.8,
+            linewidth= 1 if color =='k' else 2)
+
+
+    taken_cost_colision.append(colision_cost[0])
+    taken_cost_control.append(control_cost[0])
 
     # ax_twin.plot(data['colision_loss'], c=color)
 
     # patch = mpatches.Patch(color=color, label = "iter_"+str(frame))
     # handles.append(patch)
-ax.plot(taken_cost, c ="k", alpha = 1, linewidth=4)
+ax_colision.plot(taken_cost_colision, c ="k", alpha = 1, linewidth=4)
+ax_control.plot(taken_cost_control, c ="k", alpha = 1, linewidth=4)
 
 
-ax.set_ylabel("Cost", fontsize=20)
+ax_colision.set_ylabel("Collision Cost", fontsize=20)
+ax_control.set_ylabel("Control Cost", fontsize=20)
 # ax_twin.set_ylabel("NeRF collision", fontsize=16)
 
-ax.set_xlabel("Trajectory time", fontsize=20)
+ax_colision.set_xlabel("Trajectory time", fontsize=20)
+ax_control.set_xlabel("Trajectory time", fontsize=20)
 
 # handles, labels = ax.get_legend_handles_labels()
 # print(labels)

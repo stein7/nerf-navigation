@@ -85,13 +85,15 @@ class System:
     def get_cost(self):
         actions = self.get_actions()
 
-        # loss function helps get the smooth animation (vs evacuating the 
-        # high density region immediately
         x = actions[:, 0]**4
         y = actions[:, 1]**4
         a = actions[:, 2]**4
         distance = (x**2 + y**2)**0.5 * self.dt
 
+        # x = actions[:, 0]**2
+        # y = actions[:, 1]**2
+        # a = actions[:, 2]**2
+        # distance = 1
         density = nerf( self.body_to_world(self.robot_body)[1:,...] )**2
 
         colision_prob = torch.mean( density, dim = -1) * distance
@@ -184,7 +186,7 @@ class System:
                         c=color, alpha = alpha)
 
 
-def main(option = "figure"):
+def main():
     start_state = torch.tensor([4,0,0])
     # end_state   = torch.tensor([3,3, np.pi/2])
     # end_state   = torch.tensor([3,3, 0])
@@ -196,9 +198,6 @@ def main(option = "figure"):
 
     opt = torch.optim.Adam(traj.params(), lr=0.05)
 
-    if option == "figure":
-        fig = plt.figure(figsize=plt.figaspect(1.))
-        ax_map = fig.add_subplot(1, 1, 1)
 
     for it in range(1200):
         opt.zero_grad()
@@ -206,31 +205,27 @@ def main(option = "figure"):
         print(it, loss)
         loss.backward()
 
-        if option == "figure":
-            if it ==   0: traj.plot_map(ax_map, color = "r",show_cloud = False,  alpha = 0.35)
-            # if it == 100: traj.plot_map(ax_map, color = "y", alpha = 0.5)
-            if it == 400: traj.plot_map(ax_map, color = "b", show_cloud = False, alpha = 0.35)
-            # if it == 500: traj.plot_map(ax_map, color = "b", alpha = 0.5)
+        if it % 10 == 0:
+            fig = plt.figure(figsize=plt.figaspect(1.))
+            ax_map = fig.add_subplot(1, 1, 1)
 
-        elif option == "gif":
-            if it % 10 == 0:
-                fig = plt.figure(figsize=plt.figaspect(1.))
-                ax_map = fig.add_subplot(1, 1, 1)
-                plot_nerf(ax_map, nerf)
-                traj.plot_map(ax_map, color = "g",show_cloud = True,  alpha = 0.7)
-                #need to make folder for this
-                fig.savefig( "piano_gif_testing/" + str(it//10) + ".png")
-
+            plot_nerf(ax_map, nerf)
+            traj.plot_map(ax_map, color = "g",show_cloud = True,  alpha = 0.7)
+            # fig.savefig( "piano_gif/" + str(it//10) + ".png")
+            fig.savefig( "piano_gif_no_v/" + str(it//10) + ".png")
 
         opt.step()
 
-    if option == "figure":
-        plot_nerf(ax_map, nerf)
-        traj.plot_map(ax_map)
-        plt.show()
+        # if it > 40:
+        #     exit()
+
+    # traj.plot_map(ax_map)
+    # plt.show()
+    # traj.plot()
+
+
 
 
 
 if __name__ == "__main__":
-    main("figure")
-    # main("gif")
+    main()

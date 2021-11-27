@@ -8,7 +8,6 @@ import skimage
 import matplotlib.pyplot as plt
 import time
 import numpy.linalg as la
-import json
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.manual_seed(0)
@@ -28,9 +27,9 @@ def find_POI(img_rgb, DEBUG=False): # img - RGB image in range 0...255
     xy = np.array([list(point) for point in xy_set]).astype(int)
     return xy # pixel coordinates
 
-img2mse = lambda x, y : 100*torch.mean((x - y) ** 2)
+img2mse = lambda x, y : torch.mean((x - y) ** 2)
 
-quad_loss = lambda x, y, M: ((x - y) @ torch.inverse(M) @ (x - y))
+quad_loss = lambda x, y, M: torch.mean(((x - y).reshape((1, -1)) @ torch.inverse(M) @ (x - y).reshape((-1, 1))))
 
 def vec2ss_matrix(vector):  # vector to skewsym. matrix
 
@@ -131,8 +130,10 @@ class state_transform(nn.Module):
         super(state_transform, self).__init__()
 
         #All parameters defined as offsets
-        self.w = nn.Parameter(torch.normal(0., 1e-4, size=(3,)))
+        self.psi = nn.Parameter(torch.normal(0., 1e-4, size=(1,)))
+        self.phi = nn.Parameter(torch.normal(0., 1e-4, size=(1,)))
         self.v = nn.Parameter(torch.normal(0., 1e-4, size=(3,)))
+        self.theta = nn.Parameter(torch.normal(0., 1e-4, size=(1,)))
 
     def forward(self, x):
         #x is initial estimate on the 18 dimensional state
@@ -142,15 +143,26 @@ class state_transform(nn.Module):
         P[:3, 3] = x[:3]
         P[3, 3] = 1.
 
+        theta = self.theta
+        psi = self.psi
+        phi = self.phi
 
-        self.theta = torch.norm(self.w, p=2)
+        #convert w to spherical
+        w = torch.cat((torch.cos(psi)*torch.sin(phi), torch.sin(psi)*torch.sin(phi), torch.cos(phi)))
+
         exp_i = torch.zeros((4,4))
-        w_skewsym = vec2ss_matrix(self.w)
-        v_skewsym = vec2ss_matrix(self.v)
-        exp_i[:3, :3] = torch.eye(3) + torch.sin(self.theta) * w_skewsym + (1 - torch.cos(self.theta)) * torch.matmul(w_skewsym, w_skewsym)
-        exp_i[:3, 3] = self. v #torch.matmul(torch.eye(3) * self.theta + (1 - torch.cos(self.theta)) * w_skewsym + (self.theta - torch.sin(self.theta)) * torch.matmul(w_skewsym, w_skewsym), self.v)
+        w_skewsym = vec2ss_matrix(w)
+
+        #theta = self.theta
+        #exp_i = torch.zeros((4,4))
+        #w_skewsym = vec2ss_matrix(self.w)
+
+        exp_i[:3, :3] = torch.eye(3) + torch.sin(theta) * w_skewsym + (1 - torch.cos(theta)) * torch.matmul(w_skewsym, w_skewsym)
+        exp_i[:3, 3] = self.v #torch.matmul(torch.eye(3) * theta + (1 - torch.cos(theta)) * w_skewsym + (theta - torch.sin(theta)) * torch.matmul(w_skewsym, w_skewsym), self.v)
         exp_i[3, 3] = 1.
+
         T_i = torch.matmul(exp_i, P)
+        #T_i = torch.matmul(P, exp_i)
         
         R_i = T_i[:3, :3]
         t_i = T_i[:3, 3]
@@ -191,17 +203,11 @@ class Estimator():
                             dtype=int)
 
         #Storage for plots
-        self.pixel_losses = {}
-        self.dyn_losses = {}
-        self.rot_errors = {}
-        self.trans_errors = {}
-        self.covariance = []
-        self.state_estimates = []
-        self.states = {}
-        self.pix_sampled = []
-        self.iterations = []
-        self.predicted_states = []
-        self.actions = []
+        self.pixel_losses = []
+        self.dyn_losses = []
+        self.rot_errors = []
+        self.trans_errors = []
+        self.sig_det = []
 
     def optimize(self, start_state, sig, obs_img, obs_img_pose):
 
@@ -242,11 +248,6 @@ class Estimator():
             # find points of interest of the observed image
             POI = find_POI(obs_img_noised_POI, False)  # xy pixel coordinates of points of interest (N x 2)
 
-            if POI is None or POI.ndim < 2:
-                self.pix_sampled.append(0)
-                self.iterations.append(0)
-                return start_state.clone().detach()
-
         #obs_img_noised = (np.array(obs_img_noised) / 255.).astype(np.float32)
 
         if self.sampling_strategy == 'interest_regions':
@@ -257,12 +258,6 @@ class Estimator():
             interest_regions = cv2.dilate(interest_regions, np.ones((self.kernel_size, self.kernel_size), np.uint8), iterations=I)
             interest_regions = np.array(interest_regions, dtype=bool)
             interest_regions = self.coords[interest_regions]
-
-            if interest_regions.shape[0] < self.batch_size:
-                self.pix_sampled.append(0)
-                self.iterations.append(0)
-                return start_state.clone().detach()
-
 
         # not_POI contains all points except of POI
         coords = self.coords.reshape(self.H * self.W, 2)
@@ -288,20 +283,12 @@ class Estimator():
         best_loss = 1e5
         best_state = start_state.detach()
 
-        #Store data
-        pix_losses = []
-        dyn_losses = []
-        rot_errors = []
-        trans_errors = []
-        states = []
-
-        k = 0
-        while True:
+        for k in range(self.iter):
 
             # Create pose transformation model
             #start_state = torch.Tensor(start_state).to(device)
             #state_trans = state_transform().to(device)
-            #optimizer = torch.optim.Adam(params=state_trans.parameters(), lr=new_lrate, betas=(0.9, 0.999))
+            #optimizer = torch.optim.Adam(params=state_trans.parameters(), lr=self.lrate, betas=(0.9, 0.999))
 
             if self.sampling_strategy == 'random':
                 rand_inds = np.random.choice(coords.shape[0], size=self.batch_size, replace=False)
@@ -336,17 +323,16 @@ class Estimator():
 
             rgb = self.renderer.get_img_from_pix(batch, sim_pose, HW=False)
 
+            #Process loss. 
+            loss_dyn = quad_loss(predict_state, propagated_state, sig)
+
             optimizer.zero_grad()
 
             loss_rgb = img2mse(rgb, target_s)
 
-            #Process loss. 
-            loss_dyn = quad_loss(predict_state, propagated_state, sig)
-
-            loss = loss_rgb + loss_dyn
+            loss = loss_rgb #+ loss_dyn
 
             loss.backward()
-
             optimizer.step()
 
             if loss.cpu().detach().numpy() < best_loss and k > 0:
@@ -354,9 +340,8 @@ class Estimator():
                 best_state = predict_state
                 self.batch = batch
 
-                #with torch.no_grad():
-                #    start_state = state_trans(best_state)
-                #    start_state = start_state.cpu().detach().numpy()
+            #start_state = state_trans(start_state)
+            #start_state = start_state.cpu().detach().numpy()
 
             new_lrate = self.lrate * (0.8 ** ((k + 1) / 100))
             for param_group in optimizer.param_groups:
@@ -384,68 +369,41 @@ class Estimator():
                     rot_error = phi_error + theta_error + psi_error
                     translation_error = abs(translation_ref - translation)
 
-                    #Store data
-                    pix_losses.append(loss_rgb.clone().cpu().detach().numpy().tolist())
-                    dyn_losses.append(loss_dyn.clone().cpu().detach().numpy().tolist())
-                    rot_errors.append([phi_error, theta_error, psi_error])
-                    trans_errors.append((pose_dummy[:3, 3] - obs_img_pose[:3, 3]).tolist())
-                    states.append(predict_state.clone().cpu().detach().numpy().tolist())
-
                     print('Rotation error: ', rot_error)
                     print('Translation error: ', translation_error)
                     print('-----------------------------------')
+
+                #Store data
+                self.pixel_losses.append(loss_rgb.cpu().detach().numpy().reshape(-1))
+                self.dyn_losses.append(loss_dyn.cpu().detach().numpy().reshape(-1))
+                self.rot_errors.append(rot_error)
+                self.trans_errors.append(translation_error)
             
-                if (k+1) % 20 == 0 or k == 0:
+                if (k+1) % 300 == 0:
                     img_dummy = self.renderer.get_img_from_pose(sim_pose)
                     plt.figure()
-                    plt.imsave('./paths/rendered/' + f'{len(self.pix_sampled)}_' + f'{k}.png', img_dummy.cpu().detach().numpy())
+                    plt.imsave('./paths/rendered_img.png', img_dummy.cpu().detach().numpy())
                     plt.close()
-                            
-            k += 1
-            if k % self.iter == 0:
-                if best_loss <= 2.5 or k == 3*self.iter:
-                    self.iterations.append(k)
-                    self.pixel_losses[f'{len(self.pix_sampled)}'] = pix_losses
-                    self.dyn_losses[f'{len(self.pix_sampled)}'] = dyn_losses
-                    self.rot_errors[f'{len(self.pix_sampled)}'] = rot_errors
-                    self.trans_errors[f'{len(self.pix_sampled)}'] = trans_errors
-                    self.states[f'{len(self.pix_sampled)}'] = states
-                    self.pix_sampled.append(self.batch_size)
-                    return best_state.clone().detach()
-                else:
-                    if self.sampling_strategy == 'interest_regions' or self.sampling_strategy == 'interest_points':
-                        # find points of interest of the observed image
-                        POI = find_POI(obs_img_noised_POI, False)  # xy pixel coordinates of points of interest (N x 2)
 
-                        if self.sampling_strategy == 'interest_regions':
-                            # create sampling mask for interest region sampling strategy
-                            interest_regions = np.zeros((self.H, self.W, ), dtype=np.uint8)
-                            interest_regions[POI[:,1], POI[:,0]] = 1
-                            I += 1
-                            interest_regions = cv2.dilate(interest_regions, np.ones((self.kernel_size, self.kernel_size), np.uint8), iterations=I)
-                            interest_regions = np.array(interest_regions, dtype=bool)
-                            interest_regions = self.coords[interest_regions]
+        return best_state.clone().detach()
 
     def measurement_function(self, state, start_state, sig):
+
+        target_s = self.obs_img_noised[self.batch[:, 1], self.batch[:, 0]]
+        target_s = torch.Tensor(target_s).to(device)
+
+        pose = state2pose(state)
+
+        sim_pose = convert_blender_to_sim_pose(pose)
+
+        rgb = self.renderer.get_img_from_pix(self.batch, sim_pose, HW=False)
 
         #Process loss. 
         loss_dyn = quad_loss(state, start_state, sig)
 
-        if self.pix_sampled[-1] == 0:
-            loss = loss_dyn
-        else:
-            target_s = self.obs_img_noised[self.batch[:, 1], self.batch[:, 0]]
-            target_s = torch.Tensor(target_s).to(device)
+        loss_rgb = img2mse(rgb, target_s)
 
-            pose = state2pose(state)
-
-            sim_pose = convert_blender_to_sim_pose(pose)
-
-            rgb = self.renderer.get_img_from_pix(self.batch, sim_pose, HW=False)
-
-            loss_rgb = img2mse(rgb, target_s)
-
-            loss = loss_rgb + loss_dyn
+        loss = loss_rgb + loss_dyn
 
         return loss
 
@@ -494,28 +452,4 @@ class Estimator():
 
             print('Start state', start_state)
 
-            self.actions.append(action.clone().cpu().detach().numpy().tolist())
-            self.predicted_states.append(start_state.clone().cpu().detach().numpy().tolist())
-            self.covariance.append(self.sig.clone().cpu().detach().numpy().tolist())
-            self.state_estimates.append(self.xt.clone().cpu().detach().numpy().tolist())
-
         return self.xt.clone().cpu().detach().numpy()
-
-    def save_data(self, filename):
-        data = {}
-        data['pixel_losses'] = self.pixel_losses
-        data['dyn_losses'] = self.dyn_losses
-        data['rot_errors'] = self.rot_errors
-        data['trans_errors'] = self.trans_errors
-        data['covariance'] = self.covariance
-        data['state_estimates'] = self.state_estimates
-        data['states'] = self.states
-        data['pix_sampled'] = self.pix_sampled
-        data['iterations'] = self.iterations
-        data['predicted_states'] = self.predicted_states
-        data['actions'] = self.actions
-
-        with open(filename,"w+") as f:
-            json.dump(data, f)
-
-        return

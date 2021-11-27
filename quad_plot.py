@@ -1,4 +1,5 @@
 import torch
+from torch._C import device
 torch.autograd.set_detect_anomaly(True)
 import torch.nn as nn
 import torch.nn.functional as F
@@ -18,12 +19,11 @@ patch_typeguard()
 
 from load_nerf import get_nerf
 
-torch.manual_seed(0)
-np.random.seed(0)
-
 from quad_helpers import Simulator, QuadPlot
 from quad_helpers import rot_matrix_to_vec, vec_to_rot_matrix, next_rotation
 from quad_helpers import astar
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # # hard coded "nerf" for testing. see below to import real nerf
 def get_manual_nerf(name):
@@ -287,8 +287,8 @@ class System:
     def get_state_cost(self) -> TensorType["states"]:
         pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
 
-        fz = actions[:, 0]
-        torques = torch.norm(actions[:, 1:], dim=-1)
+        fz = actions[:, 0].to(device)
+        torques = torch.norm(actions[:, 1:], dim=-1).to(device)
 
         # S, B, 3  =  S, _, 3 +      _, B, 3   X    S, _,  3
         B_body, B_omega = torch.broadcast_tensors(self.robot_body, omega[:,None,:])
@@ -306,7 +306,7 @@ class System:
         if self.epoch < self.fade_out_epoch:
             t = torch.linspace(0,1, colision_prob.shape[0])
             position = self.epoch/self.fade_out_epoch
-            mask = torch.sigmoid(self.fade_out_sharpness * (position - t))
+            mask = torch.sigmoid(self.fade_out_sharpness * (position - t)).to(device)
             colision_prob = colision_prob * mask
 
         #PARAM cost function shaping
@@ -340,7 +340,7 @@ class System:
         except KeyboardInterrupt:
             print("finishing early")
 
-    def learn_update(self):
+    def learn_update(self, iteration):
         opt = torch.optim.Adam(self.params(), lr=self.lr)
 
         for it in range(self.epochs_update):
@@ -355,9 +355,9 @@ class System:
             # if (it > self.epochs_update and self.max_residual < 1e-3):
             #     break
 
-            # save_step = 50
-            # if it%save_step == 0:
-        # self.save_poses("paths/"+str(it//save_step)+"_testing.json")
+            save_step = 50
+            if it%save_step == 0:
+                self.save_poses("paths/"+str(it//save_step)+f'update{iteration}' + '.json', loss.clone().cpu().detach().numpy().tolist())
 
     @typechecked
     def update_state(self, measured_state: TensorType[18]):
@@ -374,10 +374,10 @@ class System:
         ax = quadplot.ax_graph
 
         pos, vel, accel, _, omega, _, actions = self.calc_everything()
-        actions = actions.detach().numpy()
-        pos = pos.detach().numpy()
-        vel = vel.detach().numpy()
-        omega = omega.detach().numpy()
+        actions = actions.cpu().detach().numpy()
+        pos = pos.cpu().detach().numpy()
+        vel = vel.cpu().detach().numpy()
+        omega = omega.cpu().detach().numpy()
 
         ax.plot(actions[...,0], label="fz")
         ax.plot(actions[...,1], label="tx")
@@ -403,17 +403,21 @@ class System:
         ax_right.plot(colision_loss.detach().numpy(), 'cyan', label="colision")
         ax.legend()
 
-    def save_poses(self, filename):
+    def save_poses(self, filename, loss):
         positions, _, _, rot_matrix, _, _, _ = self.calc_everything()
+        poses = []
+        pose_dict = {}
         with open(filename,"w+") as f:
             for pos, rot in zip(positions, rot_matrix):
                 pose = np.zeros((4,4))
-                pose[:3, :3] = rot.detach().numpy()
-                pose[:3, 3]  = pos.detach().numpy()
+                pose[:3, :3] = rot.cpu().detach().numpy()
+                pose[:3, 3]  = pos.cpu().detach().numpy()
                 pose[3,3] = 1
 
-                json.dump(pose.tolist(), f)
-                f.write('\n')
+                poses.append(pose.tolist())
+            pose_dict["poses"] = poses
+            pose_dict["loss"] = loss
+            json.dump(pose_dict, f)
 
     def save_data(self, filename):
         positions, vel, _, rot_matrix, omega, _, actions = self.calc_everything()
@@ -667,7 +671,6 @@ def OPEN_LOOP(traj):
     quadplot.trajectory( sim, "r" )
     quadplot.trajectory( save, "b", show_cloud=False )
     quadplot.show()
-
 
 if __name__ == "__main__":
     main()

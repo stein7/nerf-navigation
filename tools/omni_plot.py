@@ -421,10 +421,8 @@ class System:
 
 def main():
 
-    church = False
-
-
     renderer = get_nerf('configs/church.txt')
+
     # experiment_name = "church_omni2"
     # start_state = torch.tensor([-1.1, -0.55,  -math.pi/4 + 10e-2 ])
     # end_state = torch.tensor([-1.53, -0.83, -math.pi/4 + 10e-2])
@@ -443,15 +441,6 @@ def main():
             "fade_out_sharpness": 10,
             "epochs_update": 250,
             }
-
-
-    # experiment_name = "test" 
-    # filename = "line.plan"
-    # renderer = get_manual_nerf("empty")
-    # renderer = get_manual_nerf("cylinder")
-
-    # start_state = torch.cat( [start_pos, torch.tensor([0,0,0]), start_R.reshape(-1), torch.zeros(3)], dim=0 )
-    # end_state   = torch.cat( [end_pos,   torch.zeros(3), end_R.reshape(-1), torch.zeros(3)], dim=0 )
 
     LOAD = False
 
@@ -475,10 +464,6 @@ def main():
 
     traj.basefolder = basefolder
     traj.CHURCH = church
-
-    # quadplot = QuadPlot()
-    # traj.plot(quadplot)
-    # quadplot.show()
 
     if not LOAD:
         traj.learn_init()

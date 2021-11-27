@@ -1,0 +1,43 @@
+
+
+
+
+Headline figure - quadcopter in church - visual only
+source: bledner/church
+
+
+Other:
+2D demo - couch through hend made nerf
+source: fig_generation/piano_plot.py
+
+Omnicouch in church:
+	- Fig from Blender - visual only
+	source: bledner/church
+
+Stongehenge reoptimization:
+	- dynamics rollout - visual only
+
+
+Trajectory optimiser:
+
+- Flying through playground 
+	- Fig: Various stages of optimization
+	- Fig: Plot stages of optimization loss
+
+
+- Comparison to other methods:
+	- ???
+
+
+
+State estimator:
+
+???
+
+
+
+
+MPC:
+
+
+

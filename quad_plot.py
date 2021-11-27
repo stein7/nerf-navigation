@@ -489,7 +489,12 @@ def main():
             "fade_out_epoch": 0,
             "fade_out_sharpness": 10,
             "epochs_update": 250,
+            # "astar": True,
+            # "astar_kernel": 5,
+            # "nerf_config_file": 'configs/playground.txt',
             }
+
+
 
     #playground
     # experiment_name = "playground_slide"

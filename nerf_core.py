@@ -224,7 +224,7 @@ def create_nerf(args):
     if len(ckpts) > 0 and not args.no_reload:
         ckpt_path = ckpts[-1]
         print('Reloading from', ckpt_path)
-        ckpt = torch.load(ckpt_path)
+        ckpt = torch.load(ckpt_path, map_location = device)
 
         start = ckpt['global_step']
 

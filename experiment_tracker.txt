@@ -20,14 +20,12 @@ Stongehenge reoptimization:
 
 Trajectory optimiser:
 
-- Flying through playground 
+- Flying through playground (playground_slide)
 	- Fig: Various stages of optimization
 	- Fig: Plot stages of optimization loss
 
 
-- Comparison to other methods:
-	- ???
-
+REVISON: add expeirment comparing method to RTT and diff-flatness
 
 
 State estimator:
@@ -36,8 +34,13 @@ State estimator:
 
 
 
-
 MPC:
 
+- Flying through playground (playground_mpc_2)
+	- MPC figure
+	- Open loop figure
+
+
+- REVISON: SWAP 3rd MPC plot for standard PID following
 
 

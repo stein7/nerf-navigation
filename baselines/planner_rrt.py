@@ -25,8 +25,7 @@ class RTT:
 
 
 def testing():
-    pass
-    renderer = get_nerf('configs/stonehenge.txt')
+    renderer = get_nerf('configs/stonehenge.txt', need_render=False)
     nerf = renderer.get_density
 
     side = 40

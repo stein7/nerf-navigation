@@ -1,11 +1,13 @@
 
 
 import torch
+import numpy as np
 
 import matplotlib.pyplot as plt
 
 from nerf_core import create_nerf
 from render_functions import Renderer
+from load_blender import load_blender_data
 
 import argparse
 
@@ -129,16 +131,27 @@ def config_parser():
     return parser
 
 
-def get_nerf(config = 'configs/playground.txt'):
+def get_nerf(config = 'configs/playground.txt', need_render = True):
     parser = config_parser()
     args = parser.parse_args( ["--config", config] )
 
     render_kwargs_train, render_kwargs_test, start, grad_vars, optimizer = create_nerf(args)
 
-    chunk = args.chunk
     hwf = None, None, None
     K = None
-    renderer = Renderer(hwf, K, chunk, render_kwargs_train, config)
+    if need_render:
+        # gets camera settings needed to render the nerf but its not necessary for just getting density
+        assert args.dataset_type == 'blender', "currently only bledner dataset supported for easy loading"
+        _, _, _, hwf, _ = load_blender_data(args.datadir, args.half_res, args.testskip)
+
+        H, W, focal = hwf
+        K = np.array([
+            [focal, 0, 0.5*W],
+            [0, focal, 0.5*H],
+            [0, 0, 1]
+            ])
+
+    renderer = Renderer(hwf, K, args.chunk, render_kwargs_train, config)
 
     return renderer
 

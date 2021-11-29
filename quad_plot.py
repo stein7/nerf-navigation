@@ -492,16 +492,17 @@ def main():
             # "astar": True,
             # "astar_kernel": 5,
             # "nerf_config_file": 'configs/playground.txt',
+            # experiment_name = "playground_testing",
             }
 
 
 
     #playground
-    # experiment_name = "playground_slide"
     # experiment_name = "playground_testing"
-    # renderer = get_nerf('configs/playground.txt')
+    # renderer = get_nerf('configs/playground.txt', need_render=False)
 
     # under slide
+    # experiment_name = "playground_slide"
     # start_pos = torch.tensor([-0.3, -0.27, 0.06])
     # end_pos = torch.tensor([0.02, 0.58, 0.65])
 
@@ -511,8 +512,9 @@ def main():
 
 
     #stonehenge
-    renderer = get_nerf('configs/stonehenge.txt')
-    experiment_name = "stonehenge_with_fan_line" 
+    renderer = get_nerf('configs/stonehenge.txt', need_render=False)
+    # experiment_name = "stonehenge_with_fan_line" 
+    experiment_name = "speed_testing" 
     start_pos = torch.tensor([0.39, -0.67, 0.2])
     end_pos = torch.tensor([-0.4, 0.55, 0.16])
     astar = False
@@ -526,7 +528,7 @@ def main():
 
 
     # church
-    # renderer = get_nerf('configs/church.txt')
+    # renderer = get_nerf('configs/church.txt', need_render=False)
     #side
     # experiment_name = "church_test" 
     # start_pos = torch.tensor([-1.59, -0.9, 0.86])
@@ -538,7 +540,7 @@ def main():
     # church = True
     # kernel = 2
 
-    # renderer = get_nerf('configs/church.txt')
+    # renderer = get_nerf('configs/church.txt', need_render=False)
     # experiment_name = "church_acro2"
     # end_pos = torch.tensor([-1.24, -0.47, 0.56])
     # start_pos = torch.tensor([-1.46, -0.65, 0.84])

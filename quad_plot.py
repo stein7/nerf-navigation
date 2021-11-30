@@ -287,8 +287,8 @@ class System:
     def get_state_cost(self) -> TensorType["states"]:
         pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
 
-        fz = actions[:, 0].to(device)
-        torques = torch.norm(actions[:, 1:], dim=-1).to(device)
+        fz = actions[:, 0]#.to(device)
+        torques = torch.norm(actions[:, 1:], dim=-1)#.to(device)
 
         # S, B, 3  =  S, _, 3 +      _, B, 3   X    S, _,  3
         B_body, B_omega = torch.broadcast_tensors(self.robot_body, omega[:,None,:])

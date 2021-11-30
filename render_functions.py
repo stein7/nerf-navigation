@@ -63,6 +63,10 @@ class Renderer():
 
     @typechecked
     def get_density(self, points: TensorType["batch":..., 3]) -> TensorType["batch":...]:
+
+        # do most computation happens on cpu but do the nerf querrying on gpu
+        original_device = points.device
+
         out_shape = points.shape[:-1]
         points = points.reshape(1, -1, 3)
 
@@ -76,6 +80,6 @@ class Renderer():
         points = points @ mapping.T
 
         points = points.to(device)
+        output = self.get_density_from_pt(points).to(original_device)
 
-        output = self.get_density_from_pt(points)
         return output.reshape(*out_shape)

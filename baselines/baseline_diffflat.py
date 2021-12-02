@@ -98,8 +98,8 @@ class Trajectory:
 
         self.dt = 0.1
         self.mass = 1
-        self.J = np.eye(3)
-        self.g = np.array([0,0,-10])
+        self.J = torch.eye(3)
+        self.g = torch.tensor([0,0,-10])
 
         self.waypoints = waypoints
 
@@ -152,27 +152,43 @@ class Trajectory:
             for t in time:
                 T = t/self.dt
                 print( f"loop {T=}" )
-                out.append([self.x.df(n, T), self.y.df(n, T), self.z.df(n, T), self.a.df(n, T)]) / self.dt**n
-            return np.array(out)
+                out.append([self.x.df(n, T, value=True),
+                             self.y.df(n, T, value=True),
+                             self.z.df(n, T, value=True),
+                             self.a.df(n, T, value=True)])
+            return np.squeeze((np.array(out)/ self.dt**n) )
         except TypeError:
             T = time/self.dt
             print( f"noloop {T=}" )
-            return np.array([self.x.df(n, T), self.y.df(n, T), self.z.df(n, T), self.a.df(n, T)]) / self.dt**n
+            return np.squeeze(np.array([self.x.df(n, T, value=True),
+                         self.y.df(n, T, value=True),
+                         self.z.df(n, T, value=True),
+                         self.a.df(n, T, value=True)]) / self.dt**n)
 
     def calc_everything(self):
         time = np.arange(self.waypoints.shape[0]) * self.dt
 
-        pos = self.get_flat_outputs_derivative(0, time)
-        vel = self.get_flat_outputs_derivative(1, time)
-        accel = self.get_flat_outputs_derivative(2, time)
+        state = self.get_flat_outputs_derivative(0, time) 
+        pos = torch.tensor(state[:, :3])
+        yaw = torch.tensor(state[:, 3])
+        vel = torch.tensor(self.get_flat_outputs_derivative(1, time)[:, :3])
+        accel = torch.tensor(self.get_flat_outputs_derivative(2, time)[:, :3])
+
+        timesteps = state.shape[0]
 
         needed_acceleration = accel + self.g
         trust     = torch.norm(needed_acceleration, dim=-1, keepdim=True)
 
+        print(accel.shape)
+        print(needed_acceleration.shape)
+        print(trust.shape)
+
         # needs to be pointing in direction of acceleration
-        z_axis_body = current_accel/trust
+        z_axis_body = needed_acceleration/trust
         in_plane_heading = torch.stack( [torch.sin(yaw), -torch.cos(yaw), torch.zeros_like(yaw)], dim=-1)
 
+        print(z_axis_body.shape)
+        print(in_plane_heading.shape)
         x_axis_body = torch.cross(z_axis_body, in_plane_heading, dim=-1)
         x_axis_body = x_axis_body/torch.norm(x_axis_body, dim=-1, keepdim=True)
         y_axis_body = torch.cross(z_axis_body, x_axis_body, dim=-1)
@@ -188,7 +204,7 @@ class Trajectory:
 
     def get_full_states(self):
         pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
-        return np.cat( [pos, vel, rot_matrix.reshape(-1, 9), omega], dim=-1 )
+        return torch.cat( [pos, vel, rot_matrix.reshape(-1, 9), omega], dim=-1 )
 
     def body_to_world(self, points: TensorType["batch", 3]) -> TensorType["states", "batch", 3]:
         pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
@@ -261,7 +277,31 @@ def real():
     experiment_name = "playground_slide_diffflat"
     start_pos = torch.tensor([-0.3, -0.27, 0.06])
     end_pos = torch.tensor([0.02, 0.58, 0.65])
-    waypoints = a_star_init(renderer.get_density, start_pos, end_pos)
+
+    # waypoints = a_star_init(renderer.get_density, start_pos, end_pos)
+    waypoints = torch.tensor([[-3.0085e-01, -3.0011e-01, -3.3777e-02,  3.1418e-04],
+        [-2.6705e-01, -2.9995e-01, -6.6495e-02,  1.0762e-04],
+        [-2.3362e-01, -3.3305e-01, -9.9246e-02,  4.9720e-04],
+        [-2.0084e-01, -3.6647e-01, -6.5794e-02, -9.9827e-05],
+        [-2.0038e-01, -3.9997e-01,  5.9068e-04,  3.9036e-04],
+        [-2.0003e-01, -4.0037e-01,  1.0093e-01,  2.4334e-05],
+        [-1.9934e-01, -4.0117e-01,  2.0096e-01,  8.5178e-06],
+        [-1.9999e-01, -4.0170e-01,  3.0126e-01, -5.8070e-04],
+        [-1.9993e-01, -4.0089e-01,  4.0059e-01, -1.0857e-03],
+        [-2.0017e-01, -3.6671e-01,  4.6747e-01, -8.2182e-04],
+        [-1.6655e-01, -3.3284e-01,  5.0036e-01, -8.6045e-04],
+        [-1.3310e-01, -2.6680e-01,  5.0041e-01, -5.2341e-04],
+        [-9.8936e-02, -2.0006e-01,  5.0027e-01, -7.3956e-05],
+        [-9.8454e-02, -1.0044e-01,  5.0083e-01, -2.6723e-04],
+        [-9.8500e-02, -3.3901e-02,  5.3455e-01, -7.0797e-05],
+        [-9.9295e-02,  3.3039e-02,  5.6700e-01, -3.4976e-04],
+        [-9.9705e-02,  9.9808e-02,  6.0016e-01, -1.2674e-04],
+        [-9.9597e-02,  1.9914e-01,  5.9946e-01,  4.1651e-04],
+        [-9.9977e-02,  2.9834e-01,  5.9983e-01,  7.7750e-04],
+        [-9.9386e-02,  3.9858e-01,  5.9945e-01,  1.1503e-03],
+        [-6.6430e-02,  4.6628e-01,  5.9966e-01,  1.5968e-04],
+        [-3.2582e-02,  5.0035e-01,  5.9954e-01, -5.4830e-04]])
+    print(waypoints)
 
     traj = Trajectory(waypoints)
     traj.solve()

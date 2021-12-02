@@ -13,11 +13,13 @@ source: fig_generation/piano_plot.py
 Omnicouch in church:
 	- Fig from Blender - visual only
 	source: bledner/church
+	experiment file: omni4
 
 Stongehenge reoptimization:
 	- dynamics rollout - visual only
 
 
+Experiment Section:
 Trajectory optimiser:
 
 - Flying through playground (playground_slide)
@@ -33,14 +35,30 @@ State estimator:
 ???
 
 
-
 MPC:
 
 - Flying through playground (playground_mpc_2)
 	- MPC figure
 	- Open loop figure
+	- PID comparion ?
 
 
 - REVISON: SWAP 3rd MPC plot for standard PID following
+
+
+Video:
+
+Playground
+
+Stonehenge optimization
+
+Omnicouch
+	experiment file: omni4
+
+Estimation
+
+MPC Compare
+
+Fan MPC
 
 

@@ -482,18 +482,18 @@ def main():
     start_R = vec_to_rot_matrix( torch.tensor([0.0,0.0,0]))
     end_R = vec_to_rot_matrix( torch.tensor([0.0,0.0,0]))
 
-    cfg = {"T_final": 2,
-            "steps": 20,
-            "lr": 0.01,
-            "epochs_init": 2500,
-            "fade_out_epoch": 0,
-            "fade_out_sharpness": 10,
-            "epochs_update": 250,
-            # "astar": True,
-            # "astar_kernel": 5,
-            # "nerf_config_file": 'configs/playground.txt',
-            # experiment_name = "playground_testing",
-            }
+    # cfg = {"T_final": 2,
+    #         "steps": 20,
+    #         "lr": 0.01,
+    #         "epochs_init": 2500,
+    #         "fade_out_epoch": 0,
+    #         "fade_out_sharpness": 10,
+    #         "epochs_update": 250,
+    #         # "astar": True,
+    #         # "astar_kernel": 5,
+    #         # "nerf_config_file": 'configs/playground.txt',
+    #         # experiment_name = "playground_testing",
+    #         }
 
 
 
@@ -524,8 +524,29 @@ def main():
     # start_pos = torch.tensor([-0.04, -0.8, 0.2])
     # end_pos = torch.tensor([-0.4, 0.55, 0.16])
 
+    cfg = {
+            "experiment_name": "stonehenge_L_nerfk4",
+            "nerf_config_file": 'configs/stonehenge.txt',
+            "start_pos": [-0.47, -0.7, 0.1],
+            "end_pos": [0.12, 0.51, 0.16],
+            "T_final": 2,
+            "steps": 20,
+            "lr": 0.01,
+            "epochs_init": 2500,
+            "fade_out_epoch": 0,
+            "fade_out_sharpness": 10,
+            "epochs_update": 250,
+            "astar": True,
+            "astar_kernel": 5, # CAHGNED
+            }
 
-
+    experiment_name = cfg['experiment_name']
+    renderer = get_nerf(cfg['nerf_config_file'], need_render=False)
+    start_pos = torch.tensor(cfg['start_pos'])
+    end_pos = torch.tensor(cfg['end_pos'])
+    astar = cfg['astar']
+    kernel = cfg['astar_kernel']
+    church = cfg['nerf_config_file'] == 'configs/church.txt'
 
     # church
     # renderer = get_nerf('configs/church.txt', need_render=False)
@@ -563,12 +584,6 @@ def main():
     #         "epochs_update": 250,
     #         }
 
-
-    # experiment_name = "test" 
-    # filename = "line.plan"
-    # renderer = get_manual_nerf("empty")
-    # renderer = get_manual_nerf("cylinder")
-
     start_state = torch.cat( [start_pos, torch.tensor([0,0,0]), start_R.reshape(-1), torch.zeros(3)], dim=0 )
     end_state   = torch.cat( [end_pos,   torch.zeros(3), end_R.reshape(-1), torch.zeros(3)], dim=0 )
 
@@ -590,6 +605,8 @@ def main():
     if LOAD:
         traj = System.load_progress(basefolder / "trajectory.pt", renderer); traj.epochs_update = cfg['epochs_update'] #change depending on noise
     else:
+        # json.dump(cfg, basefolder / 'cfg.json')
+        (basefolder / 'cfg.json').write_text(json.dumps(cfg))
         traj = System(renderer, start_state, end_state, cfg)
         if astar:
             traj.a_star_init(kernel)

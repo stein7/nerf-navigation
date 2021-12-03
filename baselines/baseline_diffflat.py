@@ -16,6 +16,10 @@ import cvxpy as cp
 import numpy as np
 import matplotlib.pyplot as plt
 
+import json
+import shutil
+import pathlib
+
 torch.manual_seed(0)
 np.random.seed(0)
 
@@ -44,7 +48,7 @@ class Polynomial:
 
     def f(self, t, value = False):
         if value:
-            return sum(( an.value*(t - self.start_t)**n for n,an in enumerate(self.coef) ))
+            return sum(( an.value*(t - self.start_t)**n for n,an in enumerate(self.coef) )).astype(np.float)
         else:
             return sum(( an*(t - self.start_t)**n for n,an in enumerate(self.coef) ))
 
@@ -84,6 +88,8 @@ class Piecewise:
 
     def df(self, n, t, value = False):
         index = int(t)
+        print(f"{index=} {t=}")
+        print(len(self.polynomials))
 
         if (index == len(self.polynomials) and index == t):
             return self.polynomials[index - 1].derivative(n).f(t, value) # last point in Piecewise function
@@ -118,16 +124,24 @@ class Trajectory:
         constraints.extend( self.a.constraints() )
 
         # zero initial velocity
-        constraints.append( self.x.df(1,0) == 0 )
-        constraints.append( self.y.df(1,0) == 0 )
-        constraints.append( self.z.df(1,0) == 0 )
-        constraints.append( self.a.df(1,0) == 0 )
+        # constraints.append( self.x.df(1,0) == 0 )
+        # constraints.append( self.y.df(1,0) == 0 )
+        # constraints.append( self.z.df(1,0) == 0 )
+        # constraints.append( self.a.df(1,0) == 0 )
 
         final_t = self.waypoints.shape[0] - 1
-        constraints.append( self.x.df(1,final_t) == 0 )
-        constraints.append( self.y.df(1,final_t) == 0 )
-        constraints.append( self.z.df(1,final_t) == 0 )
-        constraints.append( self.a.df(1,final_t) == 0 )
+        # constraints.append( self.x.df(1,final_t) == 0 )
+        # constraints.append( self.y.df(1,final_t) == 0 )
+        # constraints.append( self.z.df(1,final_t) == 0 )
+        # constraints.append( self.a.df(1,final_t) == 0 )
+
+        # zero initial, final velocity,acceleration
+        for axis in [self.x, self.y, self.z, self.a]:
+            for time in [0, final_t]:
+                for derivative in [1, 2]:
+                    constraints.append( axis.df(derivative,time) == 0 )
+
+
 
         for t, waypoint in enumerate(self.waypoints):
             constraints.append( self.x.f(t) == waypoint[0]  )
@@ -166,17 +180,21 @@ class Trajectory:
                          self.a.df(n, T, value=True)]) / self.dt**n)
 
     def calc_everything(self):
-        time = np.arange(self.waypoints.shape[0]) * self.dt
+        subsample = 1
+        finalt = (self.waypoints.shape[0]-1)*self.dt
+        time = np.linspace(0, finalt , num=subsample * self.waypoints.shape[0], endpoint=False)
+        # print(self.waypoints.shape)
+        print(time)
 
         state = self.get_flat_outputs_derivative(0, time) 
-        pos = torch.tensor(state[:, :3])
-        yaw = torch.tensor(state[:, 3])
-        vel = torch.tensor(self.get_flat_outputs_derivative(1, time)[:, :3])
-        accel = torch.tensor(self.get_flat_outputs_derivative(2, time)[:, :3])
+        pos = torch.tensor(state[:, :3], dtype=torch.float)
+        yaw = torch.tensor(state[:, 3], dtype=torch.float)
+        vel = torch.tensor(self.get_flat_outputs_derivative(1, time)[:, :3], dtype=torch.float)
+        accel = torch.tensor(self.get_flat_outputs_derivative(2, time)[:, :3], dtype=torch.float)
 
         timesteps = state.shape[0]
 
-        needed_acceleration = accel + self.g
+        needed_acceleration = accel - self.g
         trust     = torch.norm(needed_acceleration, dim=-1, keepdim=True)
 
         print(accel.shape)
@@ -196,9 +214,9 @@ class Trajectory:
         # S, 3, 3 # assembled manually from basis vectors
         rot_matrix = torch.stack( [x_axis_body, y_axis_body, z_axis_body], dim=-1)
 
-        omega = np.zeros( (timesteps, 3) ) # TODO not used for anything since we only need poses
-        angular_accel = np.zeros( (timesteps, 3) )
-        actions = np.zeros( (timesteps, 4) ) 
+        omega = torch.zeros( (timesteps, 3) ) # TODO not used for anything since we only need poses
+        angular_accel = torch.zeros( (timesteps, 3) )
+        actions = torch.zeros( (timesteps, 4) ) 
 
         return pos, vel, accel, rot_matrix, omega, angular_accel, actions
 
@@ -209,9 +227,34 @@ class Trajectory:
     def body_to_world(self, points: TensorType["batch", 3]) -> TensorType["states", "batch", 3]:
         pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
 
+        print(rot_matrix.type())
+        print(points.type())
+        print(pos.type())
         # S, 3, P    =    S,3,3       3,P       S, 3, _
         world_points =  rot_matrix @ points.T + pos[..., None]
         return world_points.swapdims(-1,-2)
+
+    def save_data(self, filename):
+        positions, vel, _, rot_matrix, omega, _, actions = self.calc_everything()
+        # total_cost, colision_loss  = self.get_state_cost()
+        total_cost, colision_loss  = torch.zeros((1)), torch.zeros((1))
+
+        poses = torch.zeros((positions.shape[0], 4,4))
+        poses[:, :3, :3] = rot_matrix
+        poses[:, :3, 3]  = positions
+        poses[:, 3,3] = 1
+
+        full_states = self.get_full_states()
+
+        output = {"colision_loss": colision_loss.detach().numpy().tolist(),
+                  "poses": poses.detach().numpy().tolist(),
+                  "actions": actions.detach().numpy().tolist(),
+                  "total_cost": total_cost.detach().numpy().tolist(),
+                  "full_states": full_states.detach().numpy().tolist(),
+                  }
+
+        with open(filename,"w+") as f:
+            json.dump( output,  f)
 
 
 def a_star_init(nerf, start_state, end_state, kernel_size = 5):
@@ -272,43 +315,74 @@ def a_star_init(nerf, start_state, end_state, kernel_size = 5):
 
 
 def real():
+    cfg = {
+            "experiment_name": "stonehenge_L_minsnap",
+            "nerf_config_file": 'configs/stonehenge.txt',
+            "start_pos": [-0.47, -0.7, 0.1],
+            "end_pos": [0.12, 0.51, 0.16],
+            "astar": True,
+            "astar_kernel": 3,
+            }
 
-    renderer = get_nerf('configs/playground.txt', need_render=False)
-    experiment_name = "playground_slide_diffflat"
-    start_pos = torch.tensor([-0.3, -0.27, 0.06])
-    end_pos = torch.tensor([0.02, 0.58, 0.65])
+    renderer = get_nerf(cfg['nerf_config_file'], need_render=False)
 
-    # waypoints = a_star_init(renderer.get_density, start_pos, end_pos)
-    waypoints = torch.tensor([[-3.0085e-01, -3.0011e-01, -3.3777e-02,  3.1418e-04],
-        [-2.6705e-01, -2.9995e-01, -6.6495e-02,  1.0762e-04],
-        [-2.3362e-01, -3.3305e-01, -9.9246e-02,  4.9720e-04],
-        [-2.0084e-01, -3.6647e-01, -6.5794e-02, -9.9827e-05],
-        [-2.0038e-01, -3.9997e-01,  5.9068e-04,  3.9036e-04],
-        [-2.0003e-01, -4.0037e-01,  1.0093e-01,  2.4334e-05],
-        [-1.9934e-01, -4.0117e-01,  2.0096e-01,  8.5178e-06],
-        [-1.9999e-01, -4.0170e-01,  3.0126e-01, -5.8070e-04],
-        [-1.9993e-01, -4.0089e-01,  4.0059e-01, -1.0857e-03],
-        [-2.0017e-01, -3.6671e-01,  4.6747e-01, -8.2182e-04],
-        [-1.6655e-01, -3.3284e-01,  5.0036e-01, -8.6045e-04],
-        [-1.3310e-01, -2.6680e-01,  5.0041e-01, -5.2341e-04],
-        [-9.8936e-02, -2.0006e-01,  5.0027e-01, -7.3956e-05],
-        [-9.8454e-02, -1.0044e-01,  5.0083e-01, -2.6723e-04],
-        [-9.8500e-02, -3.3901e-02,  5.3455e-01, -7.0797e-05],
-        [-9.9295e-02,  3.3039e-02,  5.6700e-01, -3.4976e-04],
-        [-9.9705e-02,  9.9808e-02,  6.0016e-01, -1.2674e-04],
-        [-9.9597e-02,  1.9914e-01,  5.9946e-01,  4.1651e-04],
-        [-9.9977e-02,  2.9834e-01,  5.9983e-01,  7.7750e-04],
-        [-9.9386e-02,  3.9858e-01,  5.9945e-01,  1.1503e-03],
-        [-6.6430e-02,  4.6628e-01,  5.9966e-01,  1.5968e-04],
-        [-3.2582e-02,  5.0035e-01,  5.9954e-01, -5.4830e-04]])
-    print(waypoints)
+    experiment_name = cfg['experiment_name']
+    renderer = get_nerf(cfg['nerf_config_file'], need_render=False)
+    start_pos = torch.tensor(cfg['start_pos'])
+    end_pos = torch.tensor(cfg['end_pos'])
+    assert cfg['astar']
+    kernel = cfg['astar_kernel']
+
+    waypoints = a_star_init(renderer.get_density, start_pos, end_pos, kernel_size = kernel)
+
+    # print(waypoints)
+    # waypoints = np.array( [[0  , -1  ,0,0],
+    #                        [0.5, -0.5,0,0],
+    #                        [1  ,0    ,0,0],
+    #                        [0.5,0.5  ,0,0],
+    #                        [0  ,1    ,0,0]] )
+
+
+
+    basefolder = "experiments" / pathlib.Path(experiment_name)
+    if basefolder.exists():
+        print(basefolder, "already exists!")
+        if input("Clear it before continuing? [y/N]:").lower() == "y":
+            shutil.rmtree(basefolder)
+    basefolder.mkdir()
+    (basefolder / "train").mkdir()
+
+    print("created", basefolder)
+    (basefolder / 'cfg.json').write_text(json.dumps(cfg))
+
 
     traj = Trajectory(waypoints)
     traj.solve()
 
+    traj.save_data(basefolder / "train" / "0.json")
 
     quadplot = QuadPlot()
     quadplot.trajectory( traj, "g" )
+
+
+    ax = quadplot.ax_graph
+
+    pos, vel, accel, _, omega, _, actions = traj.calc_everything()
+    actions = actions.cpu().detach().numpy()
+    pos = pos.cpu().detach().numpy()
+    vel = vel.cpu().detach().numpy()
+    omega = omega.cpu().detach().numpy()
+
+    ax.plot(pos[...,0], label="px")
+    ax.plot(vel[...,0], label="vx")
+    ax.plot(accel[...,0], label="ax")
+    ax.plot(accel[...,1], label="ay")
+    ax.plot(accel[...,2], label="az")
+    # ax.plot(actions[...,1], label="tx")
+    # ax.plot(actions[...,2], label="ty")
+    # ax.plot(actions[...,3], label="tz")
+    ax.legend()
+
     quadplot.show()
 
 

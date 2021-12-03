@@ -156,7 +156,7 @@ class QuadPlot:
 
         # PLOT PATH
         # S, 1, 3
-        pos = traj.body_to_world( torch.zeros((1,3))).detach().numpy()
+        pos = traj.body_to_world( torch.zeros((1,3) )).detach().numpy()
         # print(pos.shape)
         ax.plot( pos[:,0,0], pos[:,0,1],   pos[:,0,2],  )
 

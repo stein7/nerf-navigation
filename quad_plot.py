@@ -532,7 +532,7 @@ def main():
             "T_final": 2,
             "steps": 20,
             "lr": 0.01,
-            "epochs_init": 2500,
+            "epochs_init": 9000,
             "fade_out_epoch": 0,
             "fade_out_sharpness": 10,
             "epochs_update": 250,

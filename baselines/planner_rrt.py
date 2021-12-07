@@ -22,17 +22,22 @@ np.random.seed(0)
 
 
 class RRT:
-    def __init__(self, start_state, end_state, mesh):
+    def __init__(self, start_state, end_state, mesh, cfg):
         self.start_state = start_state
         self.end_state = end_state
         self.mesh = mesh
+
+        self.cfg = cfg
+        self.goal_prob = cfg['goal_prob']
+        self.max_step_distance = cfg['max_step_distance']
+        self.robot_radius = cfg['robot_radius']
 
         # map from child to parent point
         self.graph = { self.hashable(start_state) : None }
     
         while True:
             # pick random point (pick goal point with prob)
-            use_final_goal = np.random.random() < 0.05
+            use_final_goal = np.random.random() < self.goal_prob
             if use_final_goal:
                 new_point = self.end_state
                 print("using final", new_point)
@@ -83,11 +88,11 @@ class RRT:
         distance = np.linalg.norm(normal)
         normal = normal/distance
 
-        step_size = 0.15
         prev_point = self.hashable(tree_node)
 
         # goes from the tree_node (exclusive) to the target (inclusive)
-        for point in reversed( np.linspace(target, tree_node, int(distance//step_size), endpoint=False) ):
+        nodes = int(distance//self.max_step_distance)
+        for point in reversed( np.linspace(target, tree_node, nodes, endpoint=False) ):
             print("checking", point)
             if self.in_colision(point):
                 return False
@@ -115,8 +120,7 @@ class RRT:
         distances = trimesh.proximity.ProximityQuery(self.mesh).signed_distance(point.reshape(1,3))
 
         # how big is the robot # negative is outside
-        # if distances[0] < -0.05:
-        if distances[0] < -0.06:
+        if distances[0] < - self.robot_radius:
             return False
 
         return True
@@ -127,10 +131,10 @@ class RRT:
     def get_distance_to_go(self, state):
         pass
 
-def get_mesh(renderer):
+def get_mesh(renderer, points_per_side = 40):
     nerf = renderer.get_density
 
-    side = 40
+    side = points_per_side
     linspace = torch.linspace(-1,1, side)
     spacing = (linspace[-1] - linspace[0])/(len(linspace)-1)
 
@@ -158,25 +162,25 @@ def get_mesh(renderer):
     mesh = trimesh.Trimesh(vertices=vertices, faces=faces, vertex_normals=normals)
     return mesh
 
-def testing():
+def main():
     cfg = {
-            "experiment_name": "rrt_test",
+            "experiment_name": "minsnap_stonehenge_compare",
             "nerf_config_file": 'configs/stonehenge.txt',
             "start_pos": [-0.47, -0.7, 0.1],
             "end_pos": [0.12, 0.51, 0.16],
-            "astar": True,
-            "astar_kernel": 5,
-            "subsample": 1,
+            "mesh_points_per_side": 40,
+            'goal_prob': 0.05,
+            'max_step_distance': 0.15,
+            'robot_radius': 0.06,
+            "minsnap_subsample": 1,
             }
 
     experiment_name = cfg['experiment_name']
     renderer = get_nerf(cfg['nerf_config_file'], need_render=False)
 
     mesh = get_mesh(renderer)
-    start_pos = torch.tensor(cfg['start_pos'])
-    end_pos = torch.tensor(cfg['end_pos'])
-
-    rrt = RRT(start_pos, end_pos, mesh)
+    start_pos = np.array(cfg['start_pos'])
+    end_pos = np.array(cfg['end_pos'])
 
     basefolder = "experiments" / pathlib.Path(experiment_name)
     if basefolder.exists():
@@ -189,14 +193,14 @@ def testing():
     print("created", basefolder)
     (basefolder / 'cfg.json').write_text(json.dumps(cfg))
 
-
-    traj = MinSnap(rrt.waypoints, subsample=cfg['subsample'])
+    rrt = RRT(start_pos, end_pos, mesh, cfg)
+    traj = MinSnap(rrt.waypoints, subsample=cfg['minsnap_subsample'])
     traj.solve()
 
     traj.save_data(basefolder / "train" / "0.json")
-    exit()
 
 
+def testing():
     # trimesh.repair.fix_inversion(mesh, multibody=True)
     # mesh = pymesh.form_mesh(vertices, faces)
 
@@ -218,57 +222,5 @@ def testing():
 
 
 if __name__ == "__main__":
-    testing()
-
-#def main():
-
-#    church = False
-#    astar = True
-#    kernel = 5
-
-#    start_R = vec_to_rot_matrix( torch.tensor([0.0,0.0,0]))
-#    end_R = vec_to_rot_matrix( torch.tensor([0.0,0.0,0]))
-
-#    cfg = {"T_final": 2,
-#            "steps": 20,
-#            "lr": 0.01,
-#            "epochs_init": 2500,
-#            "fade_out_epoch": 0,
-#            "fade_out_sharpness": 10,
-#            "epochs_update": 250,
-#            }
-
-#    #stonehenge
-#    renderer = get_nerf('configs/stonehenge.txt')
-#    experiment_name = "stonehenge_with_fan_line" 
-#    start_pos = torch.tensor([0.39, -0.67, 0.2])
-#    end_pos = torch.tensor([-0.4, 0.55, 0.16])
-#    astar = False
-#    kernel = 4
-
-
-
-
-#    start_state = torch.cat( [start_pos, torch.tensor([0,0,0]), start_R.reshape(-1), torch.zeros(3)], dim=0 )
-#    end_state   = torch.cat( [end_pos,   torch.zeros(3), end_R.reshape(-1), torch.zeros(3)], dim=0 )
-
-#    LOAD = False
-
-#    basefolder = "experiments" / pathlib.Path(experiment_name)
-
-#    if not LOAD:
-#        if basefolder.exists():
-#            print(basefolder, "already exists!")
-#            if input("Clear it before continuing? [y/N]:").lower() == "y":
-#                shutil.rmtree(basefolder)
-#        basefolder.mkdir()
-#        (basefolder / "train").mkdir()
-
-#    print("created", basefolder)
-
-#    traj = System(renderer, start_state, end_state, cfg)
-#    traj.a_star_init()
-
-#    flatoutputs = traj.states
-
+    main()
 

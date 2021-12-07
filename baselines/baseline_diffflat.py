@@ -316,13 +316,13 @@ def a_star_init(nerf, start_state, end_state, kernel_size = 5):
 
 def real():
     cfg = {
-            "experiment_name": "stonehenge_L_minsnap_k5",
+            "experiment_name": "minsnap_stonehenge_compare",
             "nerf_config_file": 'configs/stonehenge.txt',
             "start_pos": [-0.47, -0.7, 0.1],
             "end_pos": [0.12, 0.51, 0.16],
             "astar": True,
             "astar_kernel": 5,
-            "subsample": 1,
+            "minsnap_subsample": 1,
             }
 
     renderer = get_nerf(cfg['nerf_config_file'], need_render=False)
@@ -347,7 +347,7 @@ def real():
 
     waypoints = a_star_init(renderer.get_density, start_pos, end_pos, kernel_size = kernel)
 
-    traj = MinSnap(waypoints, subsample=cfg['subsample'])
+    traj = MinSnap(waypoints, subsample=cfg['minsnap_subsample'])
     traj.solve()
 
     traj.save_data(basefolder / "train" / "0.json")

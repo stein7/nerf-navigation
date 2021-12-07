@@ -544,54 +544,50 @@ def main():
     # traj.plot(quadplot)
     # quadplot.show()
 
+    # MPC(traj, basefolder)
+    # OPEN_LOOP(traj)
 
+def MPC(traj, basefolder):
     save = Simulator(start_state)
     save.copy_states(traj.get_full_states())
 
-    if False: # for mpc control
-        sim = Simulator(start_state)
-        sim.dt = traj.dt #Sim time step changes best on number of steps
+    sim = Simulator(traj.start_state)
+    sim.dt = traj.dt #Sim time step changes best on number of steps
 
-        if (basefolder / "mpc").exists():
-            print((basefolder / "mpc"), "already exists!")
-            if input("Clear it before continuing? [y/N]:").lower() == "y":
-                shutil.rmtree((basefolder / "mpc"))
 
-        (basefolder / "mpc").mkdir()
+    if (basefolder / "mpc").exists():
+        print((basefolder / "mpc"), "already exists!")
+        if input("Clear it before continuing? [y/N]:").lower() == "y":
+            shutil.rmtree((basefolder / "mpc"))
 
-        for step in range(traj.states.shape[0]):
-            traj.save_data(basefolder / "mpc" / (str(step)+".json"))
+    (basefolder / "mpc").mkdir()
 
-            action = traj.get_next_action().clone().detach()
-            print(action)
+    for step in range(traj.states.shape[0]):
+        traj.save_data(basefolder / "mpc" / (str(step)+".json"))
 
-            state_noise = torch.normal(mean= 0, std=torch.tensor( [0.01]*3 + [0.01]*3 + [0]*9 + [0.005]*3 ))
+        action = traj.get_next_action().clone().detach()
+        print(action)
 
-            y = sim.get_current_state()[1]
-            if y < 0 and y > -0.2:
-                state_noise[3] += -0.25 #crosswind
+        state_noise = torch.normal(mean= 0, std=torch.tensor( [0.01]*3 + [0.01]*3 + [0]*9 + [0.005]*3 ))
 
-            # sim.advance(action) # no noise
-            sim.advance(action, state_noise) #add noise
-            measured_state = sim.get_current_state().clone().detach()
+        y = sim.get_current_state()[1]
+        if y < 0 and y > -0.2:
+            state_noise[3] += -0.25 #crosswind
 
-            measurement_noise = torch.normal(mean= 0, std=torch.tensor( [0.01]*3 + [0.02]*3 + [0]*9 + [0.005]*3 ))
-            # measured_state += measurement_noise
-            traj.update_state(measured_state) 
+        # sim.advance(action) # no noise
+        sim.advance(action, state_noise) #add noise
+        measured_state = sim.get_current_state().clone().detach()
 
-            traj.learn_update()
+        measurement_noise = torch.normal(mean= 0, std=torch.tensor( [0.01]*3 + [0.02]*3 + [0]*9 + [0.005]*3 ))
+        # measured_state += measurement_noise
+        traj.update_state(measured_state) 
 
-            print("sim step", step)
+        traj.learn_update()
+
+        print("sim step", step)
+        continue
+        if step % 5 !=0 or step == 0:
             continue
-            if step % 5 !=0 or step == 0:
-                continue
-
-            quadplot = QuadPlot()
-            traj.plot(quadplot)
-            quadplot.trajectory( sim, "r" )
-            quadplot.trajectory( save, "b", show_cloud=False )
-            quadplot.show()
-
 
         quadplot = QuadPlot()
         traj.plot(quadplot)
@@ -599,7 +595,17 @@ def main():
         quadplot.trajectory( save, "b", show_cloud=False )
         quadplot.show()
 
+
+    quadplot = QuadPlot()
+    traj.plot(quadplot)
+    quadplot.trajectory( sim, "r" )
+    quadplot.trajectory( save, "b", show_cloud=False )
+    quadplot.show()
+
 def OPEN_LOOP(traj):
+    save = Simulator(start_state)
+    save.copy_states(traj.get_full_states())
+
     sim = Simulator(traj.start_state)
     sim.dt = traj.dt #Sim time step changes best on number of steps
 

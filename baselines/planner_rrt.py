@@ -54,6 +54,7 @@ class RRT:
             print("found closest", closest)
 
             successful = self.subdivide_line(new_point, closest)
+            # successful = self.add_closest(new_point, closest)
 
             if successful and use_final_goal:
                 break
@@ -83,9 +84,27 @@ class RRT:
         return tuple( point.round(5) )
 
 
+    def add_closest(self, target, tree_node):
+        normal = target - tree_node
+        distance = np.linalg.norm(normal)
+        if distance == 0:
+            return False
+
+        max_distance = 0.1
+        if distance < max_distance:
+            self.graph[self.hashable(target)] = self.hashable(tree_node)
+            return True
+        else:
+            next_point = normal/distance * max_distance
+            if not self.in_colision(next_point):
+                self.graph[self.hashable(next_point)] = self.hashable(tree_node)
+        return False
+
     def subdivide_line(self, target, tree_node):
         normal = target - tree_node
         distance = np.linalg.norm(normal)
+        if distance == 0:
+            return False
         normal = normal/distance
 
         prev_point = self.hashable(tree_node)
@@ -104,17 +123,25 @@ class RRT:
         print("successgul")
         return True
 
-    def find_closest(self, point):
-        # horribly slow etc
-        min_distance = float("inf")
-        min_point = None
-        for node in self.graph.keys():
-            distance = np.sum( (point - np.array(node))**2 )
-            if distance < min_distance:
-                min_distance = distance
-                min_point = node
+    # def find_closest(self, point):
+    #     # horribly slow etc
+    #     min_distance = float("inf")
+    #     min_point = None
+    #     for node in self.graph.keys():
+    #         distance = np.sum( (point - np.array(node))**2 )
+    #         if distance < min_distance:
+    #             min_distance = distance
+    #             min_point = node
 
-        return np.array(min_point)
+    #     return np.array(min_point)
+
+    def find_closest(self, point):
+        graph_points = np.array(list(self.graph.keys()))
+        distances = np.linalg.norm(graph_points - point, axis = -1)
+        index = np.argmin(distances)
+
+        return np.array(graph_points[index])
+
 
     def in_colision(self, point):
         distances = trimesh.proximity.ProximityQuery(self.mesh).signed_distance(point.reshape(1,3))
@@ -164,13 +191,13 @@ def get_mesh(renderer, points_per_side = 40):
 
 def main():
     cfg = {
-            "experiment_name": "rrt_stonehenge_compare1",
+            "experiment_name": "rrt_stonehenge_compare1_onepoint",
             "nerf_config_file": 'configs/stonehenge.txt',
             "start_pos": [-0.47, -0.7, 0.1],
             "end_pos": [0.12, 0.51, 0.16],
             "mesh_points_per_side": 40,
             'goal_prob': 0.05,
-            'max_step_distance': 0.15,
+            'max_step_distance': 0.10,
             'robot_radius': 0.06,
             "minsnap_subsample": 1,
             }

@@ -525,6 +525,6 @@ def testing():
 
 if __name__ == "__main__":
     # testing()
-    # real()
-    compare_loss()
+    real()
+    # compare_loss()
 

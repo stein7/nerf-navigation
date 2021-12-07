@@ -475,14 +475,14 @@ class System:
 
 def main():
 
-    cfg = { "experiment_name": "ours_stonehenge_compare",
+    cfg = { "experiment_name": "ours_stonehenge_compare1",
             "nerf_config_file": 'configs/stonehenge.txt',
             "start_pos": [-0.47, -0.7, 0.1],
             "end_pos": [0.12, 0.51, 0.16],
             "T_final": 2,
             "steps": 20,
             "lr": 0.01,
-            "epochs_init": 2500,
+            "epochs_init": 7000,
             "fade_out_epoch": 0,
             "fade_out_sharpness": 10,
             "epochs_update": 250,

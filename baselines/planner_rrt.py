@@ -164,7 +164,7 @@ def get_mesh(renderer, points_per_side = 40):
 
 def main():
     cfg = {
-            "experiment_name": "minsnap_stonehenge_compare",
+            "experiment_name": "rrt_stonehenge_compare1",
             "nerf_config_file": 'configs/stonehenge.txt',
             "start_pos": [-0.47, -0.7, 0.1],
             "end_pos": [0.12, 0.51, 0.16],
@@ -194,7 +194,7 @@ def main():
     (basefolder / 'cfg.json').write_text(json.dumps(cfg))
 
     rrt = RRT(start_pos, end_pos, mesh, cfg)
-    traj = MinSnap(rrt.waypoints, subsample=cfg['minsnap_subsample'])
+    traj = MinSnap(rrt.waypoints, subsample=cfg['minsnap_subsample'], nerf=renderer.get_density)
     traj.solve()
 
     traj.save_data(basefolder / "train" / "0.json")

@@ -100,13 +100,14 @@ class Piecewise:
         return sum( poly.loss() for poly in self.polynomials )
 
 class MinSnap:
-    def __init__(self, waypoints, subsample=1, waypoint_dt = 0.1):
+    def __init__(self, waypoints, subsample=1, waypoint_dt = 0.1, nerf = None):
         self.subsample = subsample
 
         self.dt = waypoint_dt
         self.mass = 1
         self.J = torch.eye(3)
         self.g = torch.tensor([0,0,-10])
+
 
         self.waypoints = waypoints
 
@@ -115,6 +116,13 @@ class MinSnap:
         self.y = Piecewise(segments, order = 7, loss_derivative = 4)
         self.z = Piecewise(segments, order = 7, loss_derivative = 4)
         self.a = Piecewise(segments, order = 4, loss_derivative = 2)
+
+        #used only for cost testing
+        self.nerf = nerf
+        body = torch.stack( torch.meshgrid( torch.linspace(-0.05, 0.05, 10),
+                                            torch.linspace(-0.05, 0.05, 10),
+                                            torch.linspace(-0.02, 0.02,  5)), dim=-1)
+        self.robot_body = body.reshape(-1, 3)
 
     def constraints(self):
         constraints = []
@@ -193,6 +201,8 @@ class MinSnap:
 
 
         finalt = (self.waypoints.shape[0]-1)*self.dt
+
+        dt_effective = self.dt / self.subsample
         time = np.linspace(0, finalt , num=self.subsample * self.waypoints.shape[0], endpoint=False)
         # print(self.waypoints.shape)
         print(time)
@@ -230,7 +240,7 @@ class MinSnap:
         print(f"{omega.shape=}")
 
         angular_accel = (omega_plus - omega_minus)/dh
-        first_angular_accel = (omega[1,:] - omega[0,:])/self.dt
+        first_angular_accel = (omega[1,:] - omega[0,:])/dt_effective
 
         angular_accel = torch.cat( [first_angular_accel[None, :], angular_accel, angular_accel[-1,None,:] ], dim=0)
 
@@ -381,7 +391,7 @@ def a_star_init(nerf, start_state, end_state, kernel_size = 5):
 
 def real():
     cfg = {
-            "experiment_name": "minsnap_stonehenge_compare",
+            "experiment_name": "minsnap_stonehenge_compare1",
             "nerf_config_file": 'configs/stonehenge.txt',
             "start_pos": [-0.47, -0.7, 0.1],
             "end_pos": [0.12, 0.51, 0.16],
@@ -410,7 +420,7 @@ def real():
 
     waypoints = a_star_init(renderer.get_density, start_pos, end_pos, kernel_size = kernel)
 
-    traj = MinSnap(waypoints, subsample=cfg['minsnap_subsample'])
+    traj = MinSnap(waypoints, subsample=cfg['minsnap_subsample'], nerf=renderer.get_density)
     traj.solve()
 
     traj.save_data(basefolder / "train" / "0.json")
@@ -480,6 +490,6 @@ def testing():
 
 
 if __name__ == "__main__":
-    testing()
-    # real()
+    # testing()
+    real()
 

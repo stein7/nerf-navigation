@@ -100,10 +100,10 @@ class Piecewise:
         return sum( poly.loss() for poly in self.polynomials )
 
 class MinSnap:
-    def __init__(self, waypoints, subsample=1):
+    def __init__(self, waypoints, subsample=1, waypoint_dt = 0.1):
         self.subsample = subsample
 
-        self.dt = 0.1
+        self.dt = waypoint_dt
         self.mass = 1
         self.J = torch.eye(3)
         self.g = torch.tensor([0,0,-10])
@@ -180,7 +180,18 @@ class MinSnap:
                          self.z.df(n, T, value=True),
                          self.a.df(n, T, value=True)]) / self.dt**n)
 
-    def calc_everything(self):
+    @typechecked
+    def calc_everything(self) -> (
+            TensorType["states", 3], #pos
+            TensorType["states", 3], #vel
+            TensorType["states", 3], #accel
+            TensorType["states", 3,3], #rot_matrix
+            TensorType["states", 3], #omega
+            TensorType["states", 3], #angualr_accel
+            TensorType["states", 4], #actions
+        ):
+
+
         finalt = (self.waypoints.shape[0]-1)*self.dt
         time = np.linspace(0, finalt , num=self.subsample * self.waypoints.shape[0], endpoint=False)
         # print(self.waypoints.shape)
@@ -195,34 +206,89 @@ class MinSnap:
         timesteps = state.shape[0]
 
         needed_acceleration = accel - self.g
-        trust     = torch.norm(needed_acceleration, dim=-1, keepdim=True)
+        thrust     = torch.norm(needed_acceleration, dim=-1, keepdim=True)
 
-        print(accel.shape)
-        print(needed_acceleration.shape)
-        print(trust.shape)
+        rot_matrix = self.get_rot_matirx(time)
 
-        # needs to be pointing in direction of acceleration
-        z_axis_body = needed_acceleration/trust
+        # math is hard so we compute derivatives numerically
+        dh = 1e-3
+        rot_matrix_zero = rot_matrix[1:-1, :, :]
+        rot_matrix_plus = self.get_rot_matirx(time[1:-1] + dh)
+        rot_matrix_minus = self.get_rot_matirx(time[1:-1] - dh)
+
+        print(f"{rot_matrix_zero.shape=}")
+        print(f"{rot_matrix_plus.shape=}")
+        print(f"{rot_matrix_minus.shape=}")
+
+        omega_plus = rot_matrix_to_vec( rot_matrix_plus @ rot_matrix_zero.swapdims(-1,-2) ) / dh
+        omega_minus= rot_matrix_to_vec( rot_matrix_zero @ rot_matrix_minus.swapdims(-1,-2) ) / dh
+
+        #start and end states are constrained to have zero omega
+        print(f"{torch.zeros((1,3)).shape=}")
+        print(f"{((omega_minus + omega_plus)/2).shape=}")
+        omega = torch.cat( [torch.zeros((1,3)),  (omega_minus + omega_plus)/2, torch.zeros((1,3))], dim = 0)
+        print(f"{omega.shape=}")
+
+        angular_accel = (omega_plus - omega_minus)/dh
+        first_angular_accel = (omega[1,:] - omega[0,:])/self.dt
+
+        angular_accel = torch.cat( [first_angular_accel[None, :], angular_accel, angular_accel[-1,None,:] ], dim=0)
+
+        torques = (self.J @ angular_accel[...,None])[...,0]
+        print(f"{torques.shape=}")
+        print(f"{thrust.shape=}")
+        actions =  torch.cat([ thrust*self.mass, torques ], dim=-1)
+
+        return pos, vel, accel, rot_matrix, omega, angular_accel, actions
+
+    def get_rot_matirx(self, time):
+        state = self.get_flat_outputs_derivative(0, time) 
+
+        yaw = torch.tensor(state[:, 3], dtype=torch.float)
+        accel = torch.tensor(self.get_flat_outputs_derivative(2, time)[:, :3], dtype=torch.float)
+
+        needed_acceleration = accel - self.g
+        thrust     = torch.norm(needed_acceleration, dim=-1, keepdim=True)
+        z_axis_body = needed_acceleration/thrust
+
         in_plane_heading = torch.stack( [torch.sin(yaw), -torch.cos(yaw), torch.zeros_like(yaw)], dim=-1)
 
-        print(z_axis_body.shape)
-        print(in_plane_heading.shape)
         x_axis_body = torch.cross(z_axis_body, in_plane_heading, dim=-1)
         x_axis_body = x_axis_body/torch.norm(x_axis_body, dim=-1, keepdim=True)
         y_axis_body = torch.cross(z_axis_body, x_axis_body, dim=-1)
 
         # S, 3, 3 # assembled manually from basis vectors
         rot_matrix = torch.stack( [x_axis_body, y_axis_body, z_axis_body], dim=-1)
-
-        omega = torch.zeros( (timesteps, 3) ) # TODO not used for anything since we only need poses
-        angular_accel = torch.zeros( (timesteps, 3) )
-        actions = torch.zeros( (timesteps, 4) ) 
-
-        return pos, vel, accel, rot_matrix, omega, angular_accel, actions
+        return rot_matrix
 
     def get_full_states(self):
         pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
         return torch.cat( [pos, vel, rot_matrix.reshape(-1, 9), omega], dim=-1 )
+
+
+    def get_state_cost(self) -> TensorType["states"]:
+        # copied from quad_planner to offer comparison
+        pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
+
+        fz = actions[:, 0]#.to(device)
+        torques = torch.norm(actions[:, 1:], dim=-1)#.to(device)
+
+        # S, B, 3  =  S, _, 3 +      _, B, 3   X    S, _,  3
+        B_body, B_omega = torch.broadcast_tensors(self.robot_body, omega[:,None,:])
+        point_vels = vel[:,None,:] + torch.cross(B_body, B_omega, dim=-1)
+
+        # S, B
+        distance = torch.sum( vel**2 + 1e-5, dim = -1)**0.5
+        # S, B
+        density = self.nerf( self.body_to_world(self.robot_body) )**2
+
+        # multiplied by distance to prevent it from just speed tunnelling
+        # S =   S,B * S,_
+        colision_prob = torch.mean(density * distance[:,None], dim = -1) 
+
+        #PARAM cost function shaping
+        return 1000*fz**2 + 0.01*torques**4 + colision_prob * 1e6, colision_prob*1e6
+
 
     def body_to_world(self, points: TensorType["batch", 3]) -> TensorType["states", "batch", 3]:
         pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
@@ -236,8 +302,7 @@ class MinSnap:
 
     def save_data(self, filename):
         positions, vel, _, rot_matrix, omega, _, actions = self.calc_everything()
-        # total_cost, colision_loss  = self.get_state_cost()
-        total_cost, colision_loss  = torch.zeros((1)), torch.zeros((1))
+        total_cost, colision_loss  = self.get_state_cost()
 
         poses = torch.zeros((positions.shape[0], 4,4))
         poses[:, :3, :3] = rot_matrix
@@ -325,8 +390,6 @@ def real():
             "minsnap_subsample": 1,
             }
 
-    renderer = get_nerf(cfg['nerf_config_file'], need_render=False)
-
     experiment_name = cfg['experiment_name']
     renderer = get_nerf(cfg['nerf_config_file'], need_render=False)
     start_pos = torch.tensor(cfg['start_pos'])
@@ -382,38 +445,41 @@ def testing():
                            [0.5, -0.5,0,0],
                            [1  ,0    ,0,0],
                            [0.5,0.5  ,0,0],
+                           # [0.8,0.8  ,0,0],
                            [0  ,1    ,0,0]] )
 
-    traj = MinSnap(waypoints)
+    traj = MinSnap(waypoints, subsample=10)
     traj.solve()
 
+    quadplot = QuadPlot()
+    quadplot.trajectory( traj, "g" )
 
-    time = np.linspace(0, 2, 100)
+    ax = quadplot.ax_graph
 
-    x = [traj.x.f(t, value = True) for t in time]
-    dx = [traj.x.df(1, t, value = True) for t in time]
-    y = [traj.y.f(t, value = True) for t in time]
-    z = [traj.z.f(t, value = True) for t in time]
+    pos, vel, accel, _, omega, _, actions = traj.calc_everything()
+    actions = actions.cpu().detach().numpy()
+    pos = pos.cpu().detach().numpy()
+    vel = vel.cpu().detach().numpy()
+    omega = omega.cpu().detach().numpy()
 
-    print(time)
-    print(x)
+#     ax.plot(pos[...,0], label="px")
+#     ax.plot(vel[...,0], label="vx")
+#     ax.plot(accel[...,0], label="ax")
+#     ax.plot(accel[...,1], label="ay")
+#     ax.plot(accel[...,2], label="az")
+#     ax.plot(actions[...,0], label="t0")
+    ax.plot(omega[...,0], label="wx")
+    ax.plot(omega[...,1], label="wy")
+    ax.plot(omega[...,2], label="wz")
+    ax.plot(actions[...,1], label="tx")
+    ax.plot(actions[...,2], label="ty")
+    ax.plot(actions[...,3], label="tz")
+    ax.legend()
 
-    # print(waypoints)
-
-    # print(traj.x.polynomials[0].coef.value)
-    # print(traj.x.polynomials[1].coef.value)
-    # print(traj.x.polynomials[1].derivative(1).coef.value)
-
-    plt.plot(x, y)
-    # plt.plot(time, x)
-    # plt.plot(time, dx)
-    # plt.plot(time, y)
-    # plt.plot(time, z)
-    plt.show()
-
+    quadplot.show()
 
 
 if __name__ == "__main__":
-    # testing()
-    real()
+    testing()
+    # real()
 

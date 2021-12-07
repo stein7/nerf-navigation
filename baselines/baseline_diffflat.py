@@ -88,8 +88,8 @@ class Piecewise:
 
     def df(self, n, t, value = False):
         index = int(t)
-        print(f"{index=} {t=}")
-        print(len(self.polynomials))
+        # print(f"{index=} {t=}")
+        # print(len(self.polynomials))
 
         if (index == len(self.polynomials) and index == t):
             return self.polynomials[index - 1].derivative(n).f(t, value) # last point in Piecewise function
@@ -162,12 +162,12 @@ class MinSnap:
         prob.solve()
 
     def get_flat_outputs_derivative(self, n, time):
-        print( f"{time=}" )
+        # print( f"{time=}" )
         try:
             out = []
             for t in time:
                 T = t/self.dt
-                print( f"loop {T=}" )
+                # print( f"loop {T=}" )
                 out.append([self.x.df(n, T, value=True),
                              self.y.df(n, T, value=True),
                              self.z.df(n, T, value=True),
@@ -175,7 +175,7 @@ class MinSnap:
             return np.squeeze((np.array(out)/ self.dt**n) )
         except TypeError:
             T = time/self.dt
-            print( f"noloop {T=}" )
+            # print( f"noloop {T=}" )
             return np.squeeze(np.array([self.x.df(n, T, value=True),
                          self.y.df(n, T, value=True),
                          self.z.df(n, T, value=True),
@@ -296,9 +296,6 @@ class MinSnap:
     def body_to_world(self, points: TensorType["batch", 3]) -> TensorType["states", "batch", 3]:
         pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
 
-        print(rot_matrix.type())
-        print(points.type())
-        print(pos.type())
         # S, 3, P    =    S,3,3       3,P       S, 3, _
         world_points =  rot_matrix @ points.T + pos[..., None]
         return world_points.swapdims(-1,-2)

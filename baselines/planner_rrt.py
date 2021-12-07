@@ -45,16 +45,16 @@ class RRT:
                 new_point = 2 * np.random.random((3)) - 1
                 print("using random", new_point)
 
-            if self.in_colision(new_point):
-                continue
-                print("in collision")
+            # if self.in_colision(new_point):
+            #     continue
+            #     print("in collision")
 
             # find closest point in tree
             closest = self.find_closest(new_point)
             print("found closest", closest)
 
-            successful = self.subdivide_line(new_point, closest)
-            # successful = self.add_closest(new_point, closest)
+            # successful = self.subdivide_line(new_point, closest)
+            successful = self.add_closest(new_point, closest)
 
             if successful and use_final_goal:
                 break
@@ -90,7 +90,7 @@ class RRT:
         if distance == 0:
             return False
 
-        max_distance = 0.1
+        max_distance = 0.2
         if distance < max_distance:
             self.graph[self.hashable(target)] = self.hashable(tree_node)
             return True

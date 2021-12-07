@@ -132,22 +132,15 @@ class MinSnap:
         constraints.extend( self.z.constraints() )
         constraints.extend( self.a.constraints() )
 
-        # zero initial velocity
-        # constraints.append( self.x.df(1,0) == 0 )
-        # constraints.append( self.y.df(1,0) == 0 )
-        # constraints.append( self.z.df(1,0) == 0 )
-        # constraints.append( self.a.df(1,0) == 0 )
-
         final_t = self.waypoints.shape[0] - 1
-        # constraints.append( self.x.df(1,final_t) == 0 )
-        # constraints.append( self.y.df(1,final_t) == 0 )
-        # constraints.append( self.z.df(1,final_t) == 0 )
-        # constraints.append( self.a.df(1,final_t) == 0 )
-
         # zero initial, final velocity,acceleration
         for axis in [self.x, self.y, self.z, self.a]:
             for time in [0, final_t]:
                 for derivative in [1, 2]:
+                    # our planner doesn't constrain final trust to be == g
+                    # it only constraints the orientation (and omega)
+                    if time == final_t and derivative == 2 and axis is self.z:
+                        continue
                     constraints.append( axis.df(derivative,time) == 0 )
 
 
@@ -450,6 +443,47 @@ def real():
     quadplot.show()
 
 
+def compare_loss():
+    f = 'experiments/ours_stonehenge_compare1/train/139.json'
+    data = json.load(open(f))
+
+    poses = np.array(data['poses'])
+    positions = poses[:, :3 , 3]
+    waypoints = np.concatenate([positions, np.zeros((poses.shape[0], 1))], axis=-1)
+    print(waypoints.shape)
+    traj = MinSnap(waypoints, subsample=1)
+    traj.solve()
+
+    pos, vel, accel, _, omega, _, actions = traj.calc_everything()
+
+    ours_actions = np.array( data['actions'])
+    ours_omega = np.array( data['full_states'])[:, -3:]
+
+    fig = plt.figure()
+    ax1 = fig.add_subplot(2, 2, 1)
+    ax2 = fig.add_subplot(2, 2, 2)
+    ax3 = fig.add_subplot(2, 2, 3)
+    ax4 = fig.add_subplot(2, 2, 4)
+
+    ax1.plot(actions[...,0], label="df_t0")
+    ax1.plot(ours_actions[...,0], label="our_t0")
+
+    ax2.plot(actions[...,1], label="df_tx")
+    ax2.plot(ours_actions[...,1], label="our_tx")
+
+    ax3.plot(actions[...,2], label="df_ty")
+    ax3.plot(ours_actions[...,2], label="our_ty")
+
+    ax4.plot(actions[...,3], label="df_tz")
+    ax4.plot(ours_actions[...,3], label="our_tz")
+
+    ax1.legend()
+    ax2.legend()
+    ax3.legend()
+    ax4.legend()
+    plt.show()
+
+
 def testing():
     waypoints = np.array( [[0  , -1  ,0,0],
                            [0.5, -0.5,0,0],
@@ -491,5 +525,6 @@ def testing():
 
 if __name__ == "__main__":
     # testing()
-    real()
+    # real()
+    compare_loss()
 

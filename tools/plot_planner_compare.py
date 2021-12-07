@@ -48,6 +48,9 @@ def get_latest_train(name):
 def mean(array):
     return sum(array)/len(array)
 
+collision = []
+control = [] 
+
 handles =[]
 ax_twin = ax.twinx()
 for name,color in zip(names, colors):
@@ -55,6 +58,10 @@ for name,color in zip(names, colors):
 
     print(name, "total", mean(data['total_cost']))
     print(name, "colision", mean(data['colision_loss']))
+
+    collision.append(mean(data['colision_loss']))
+    control.append(mean(data['total_cost']) -  mean(data['colision_loss'] ))
+
     ax.plot(data['total_cost'], c =color, linestyle='--', linewidth =3)
     ax_twin.plot(data['colision_loss'], c=color, linewidth =3)
 

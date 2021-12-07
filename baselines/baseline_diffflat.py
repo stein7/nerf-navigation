@@ -99,8 +99,9 @@ class Piecewise:
     def loss(self):
         return sum( poly.loss() for poly in self.polynomials )
 
-class Trajectory:
-    def __init__(self, waypoints):
+class MinSnap:
+    def __init__(self, waypoints, subsample=1):
+        self.subsample = subsample
 
         self.dt = 0.1
         self.mass = 1
@@ -180,9 +181,8 @@ class Trajectory:
                          self.a.df(n, T, value=True)]) / self.dt**n)
 
     def calc_everything(self):
-        subsample = 1
         finalt = (self.waypoints.shape[0]-1)*self.dt
-        time = np.linspace(0, finalt , num=subsample * self.waypoints.shape[0], endpoint=False)
+        time = np.linspace(0, finalt , num=self.subsample * self.waypoints.shape[0], endpoint=False)
         # print(self.waypoints.shape)
         print(time)
 
@@ -316,12 +316,13 @@ def a_star_init(nerf, start_state, end_state, kernel_size = 5):
 
 def real():
     cfg = {
-            "experiment_name": "stonehenge_L_minsnap",
+            "experiment_name": "stonehenge_L_minsnap_k5",
             "nerf_config_file": 'configs/stonehenge.txt',
             "start_pos": [-0.47, -0.7, 0.1],
             "end_pos": [0.12, 0.51, 0.16],
             "astar": True,
-            "astar_kernel": 3,
+            "astar_kernel": 5,
+            "subsample": 1,
             }
 
     renderer = get_nerf(cfg['nerf_config_file'], need_render=False)
@@ -332,17 +333,6 @@ def real():
     end_pos = torch.tensor(cfg['end_pos'])
     assert cfg['astar']
     kernel = cfg['astar_kernel']
-
-    waypoints = a_star_init(renderer.get_density, start_pos, end_pos, kernel_size = kernel)
-
-    # print(waypoints)
-    # waypoints = np.array( [[0  , -1  ,0,0],
-    #                        [0.5, -0.5,0,0],
-    #                        [1  ,0    ,0,0],
-    #                        [0.5,0.5  ,0,0],
-    #                        [0  ,1    ,0,0]] )
-
-
 
     basefolder = "experiments" / pathlib.Path(experiment_name)
     if basefolder.exists():
@@ -355,8 +345,9 @@ def real():
     print("created", basefolder)
     (basefolder / 'cfg.json').write_text(json.dumps(cfg))
 
+    waypoints = a_star_init(renderer.get_density, start_pos, end_pos, kernel_size = kernel)
 
-    traj = Trajectory(waypoints)
+    traj = MinSnap(waypoints, subsample=cfg['subsample'])
     traj.solve()
 
     traj.save_data(basefolder / "train" / "0.json")
@@ -387,10 +378,13 @@ def real():
 
 
 def testing():
-    waypoints = np.array( [[0,-1,0,0], [1,0,0,0], [0,1,0,0]] )
-    #TODO verify dimentionality
+    waypoints = np.array( [[0  , -1  ,0,0],
+                           [0.5, -0.5,0,0],
+                           [1  ,0    ,0,0],
+                           [0.5,0.5  ,0,0],
+                           [0  ,1    ,0,0]] )
 
-    traj = Trajectory(waypoints)
+    traj = MinSnap(waypoints)
     traj.solve()
 
 
@@ -404,6 +398,8 @@ def testing():
     print(time)
     print(x)
 
+    # print(waypoints)
+
     # print(traj.x.polynomials[0].coef.value)
     # print(traj.x.polynomials[1].coef.value)
     # print(traj.x.polynomials[1].derivative(1).coef.value)
@@ -415,11 +411,6 @@ def testing():
     # plt.plot(time, z)
     plt.show()
 
-
-# prob = cp.Problem(cp.Minimize((1/2)*cp.quad_form(x, P) + q.T @ x),
-#                  [G @ x <= h,
-#                   A @ x == b])
-# prob.solve()
 
 
 if __name__ == "__main__":

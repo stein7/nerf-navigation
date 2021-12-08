@@ -322,7 +322,7 @@ class MinSnap:
             json.dump( output,  f)
 
 
-def a_star_init(nerf, start_state, end_state, kernel_size = 5):
+def a_star_init(nerf, start_state, end_state, kernel_size = 5, exact_goalpoints = False):
     side = 100 #PARAM grid size
 
     linspace = torch.linspace(-1,1, side) #PARAM extends of the thing
@@ -373,6 +373,12 @@ def a_star_init(nerf, start_state, end_state, kernel_size = 5):
     prev_smooth = torch.cat([states[0,None, :], states[:-1,:]],        dim=0)
     next_smooth = torch.cat([states[1:,:],      states[-1,None, :], ], dim=0)
     states = (prev_smooth + next_smooth + states)/3
+
+
+    if exact_goalpoints:
+        start_with_yaw = torch.cat( [start_state, torch.zeros( (1) ) ], dim=-1)[None,:]
+        end_with_yaw = torch.cat( [end_state, torch.zeros( (1) ) ], dim=-1)[None,:]
+        states = torch.cat( [start_with_yaw, states, end_with_yaw], dim = 0 )
 
     return states.clone().detach()
 
@@ -466,16 +472,17 @@ def run_planner(cfg):
     print("created", basefolder)
     (basefolder / 'cfg.json').write_text(json.dumps(cfg))
 
-    waypoints = a_star_init(renderer.get_density, start_pos, end_pos, kernel_size = kernel)
+    waypoints = a_star_init(renderer.get_density, start_pos, end_pos, kernel_size = kernel, exact_goalpoints = True)
 
     traj = MinSnap(waypoints, subsample=cfg['minsnap_subsample'], nerf=renderer.get_density)
     traj.solve()
 
     traj.save_data(basefolder / "train" / "0.json")
 
+    return
+
     quadplot = QuadPlot()
     quadplot.trajectory( traj, "g" )
-
 
     ax = quadplot.ax_graph
 
@@ -580,7 +587,7 @@ def testing():
 
 if __name__ == "__main__":
     # testing()
-    real()
+    # real()
     # compare_loss()
-    #run_many()
+    run_many()
 

@@ -235,18 +235,18 @@ def run_many():
                     "end_pos": [0.49, 0.23, 0.16],}, ]
 
     for change in changes:
-    cfg = { "experiment_name": None,
-            "nerf_config_file": 'configs/stonehenge.txt',
-            "start_pos": None,
-            "end_pos": None,
-            "mesh_points_per_side": 40,
-            'rrt_line_step': False,
-            'goal_prob': 0.05,
-            'max_step_distance': 0.10,
-            'robot_radius': 0.05,
-            "minsnap_subsample": 1,
-            "waypoint_dt": 0.1,
-            }
+        cfg = { "experiment_name": None,
+                "nerf_config_file": 'configs/stonehenge.txt',
+                "start_pos": None,
+                "end_pos": None,
+                "mesh_points_per_side": 40,
+                'rrt_line_step': False,
+                'goal_prob': 0.05,
+                'max_step_distance': 0.10,
+                'robot_radius': 0.05,
+                "minsnap_subsample": 1,
+                "waypoint_dt": 0.1,
+                }
 
         print(change)
         cfg.update(change)
@@ -305,6 +305,6 @@ def testing():
 
 if __name__ == "__main__":
     # testing()
-    main()
-    #run_many()
+    # main()
+    run_many()
 

@@ -490,6 +490,10 @@ def main():
             "astar_kernel": 5,
             }
 
+    run_planner(cfg)
+
+def run_planner(cfg):
+
     experiment_name = cfg['experiment_name']
     renderer = get_nerf(cfg['nerf_config_file'], need_render=False)
     start_pos = torch.tensor(cfg['start_pos'])

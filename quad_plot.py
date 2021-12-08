@@ -476,29 +476,45 @@ class System:
 
 
 def run_many():
-    changes = [{"name":"random_stonehenge_2",
-                "start_pos": [-0.72, -0.75, 0.1],
-                "end_pos": [0.51, 0.48, 0.16],},
+    changes = [{"experiment_name":"random_stonehenge_0",
+                    "start_pos": [0.55, -0.02, 0.05],
+                    "end_pos": [-0.72, 0.17, 0.19],}, 
 
-                {"name":"random_stonehenge_3",
-                "start_pos": [-0.42, -0.75, 0.1],
-                "end_pos": [0.21, 0.48, 0.16],},
+                {"experiment_name":"random_stonehenge_1",
+                    "start_pos": [-0.12, -0.92, 0.05],
+                    "end_pos": [-0.1, 0.8, 0.19],}, 
 
-                {"name":"random_stonehenge_4",
-                "start_pos": [-0.12, -0.75, 0.1],
-                "end_pos": [-0.09, 0.48, 0.16],},
+                {"experiment_name":"random_stonehenge_2",
+                    "start_pos": [-0.72, -0.75, 0.1],
+                    "end_pos": [0.51, 0.48, 0.16],}, 
 
-                {"name":"random_stonehenge_5",
-                "start_pos": [0.18, -0.75, 0.1],
-                "end_pos": [-0.39, 0.48, 0.16],},
+                {"experiment_name":"random_stonehenge_3",
+                    "start_pos": [-0.42, -0.75, 0.1],
+                    "end_pos": [0.21, 0.48, 0.16],}, 
 
-                {"name":"random_stonehenge_6",
-                "start_pos": [0.48, -0.75, 0.1],
-                "end_pos": [-0.69, 0.48, 0.16],},
+                {"experiment_name":"random_stonehenge_4",
+                    "start_pos": [-0.12, -0.75, 0.1],
+                    "end_pos": [-0.09, 0.48, 0.16],}, 
 
-                {"name":"random_stonehenge_7",
-                "start_pos": [0.48, -0.42, 0.1],
-                "end_pos": [-0.71, 0.83, 0.16],},]
+                {"experiment_name":"random_stonehenge_5",
+                    "start_pos": [0.18, -0.75, 0.1],
+                    "end_pos": [-0.39, 0.48, 0.16],}, 
+
+                {"experiment_name":"random_stonehenge_6",
+                    "start_pos": [0.48, -0.75, 0.1],
+                    "end_pos": [-0.69, 0.48, 0.16],}, 
+
+                {"experiment_name":"random_stonehenge_7",
+                    "start_pos": [0.48, -0.42, 0.1],
+                    "end_pos": [-0.71, 0.83, 0.16],}, 
+
+                {"experiment_name":"random_stonehenge_8",
+                    "start_pos": [-0.72, -0.12, 0.1],
+                    "end_pos": [0.49, 0.83, 0.16],}, 
+
+                {"experiment_name":"random_stonehenge_9",
+                    "start_pos": [-0.72, -0.42, 0.1],
+                    "end_pos": [0.49, 0.23, 0.16],}, ]
 
     for change in changes:
         cfg = { "experiment_name": None,
@@ -508,7 +524,7 @@ def run_many():
                 "T_final": 2,
                 "steps": 20,
                 "lr": 0.01,
-                "epochs_init": 7000,
+                "epochs_init": 2500,
                 "fade_out_epoch": 0,
                 "fade_out_sharpness": 10,
                 "epochs_update": 250,
@@ -516,9 +532,10 @@ def run_many():
                 "astar_kernel": 5,
                 }
 
+        print(change)
         cfg.update(change)
+        print(cfg)
         run_planner(cfg)
-
 
 
 def main():
@@ -806,4 +823,5 @@ def old_configs():
             }
 
 if __name__ == "__main__":
-    main()
+    run_many()
+    # main()

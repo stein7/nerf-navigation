@@ -37,21 +37,21 @@ for frame,color in zip(frames, colors):
     handles.append(patch)
 
 
-ax.set_ylabel("Mesh (ground truth) collision", fontsize=20)
-ax_twin.set_ylabel("NeRF collision", fontsize=20)
-ax.set_xlabel("Trajectory time", fontsize=20)
+ax.set_ylabel("Mesh (ground truth) collision", fontsize=30)
+ax_twin.set_ylabel("NeRF collision", fontsize=30)
+ax.set_xlabel("Trajectory time", fontsize=30)
 
 # handles, labels = ax.get_legend_handles_labels()
 # print(labels)
 
-legend1 =  plt.legend(handles=handles, prop={"size":16} , loc=1)
+legend1 =  plt.legend(handles=handles, prop={"size":20} , loc=1)
 
 handels2 = []
 line1 = Line2D([0], [0], label='Mesh intersection volume', color='k', linestyle='--')
 line2 = Line2D([0], [0], label='NeRf collision loss', color='k', linestyle='-')
 handels2.extend([line1, line2])
 
-plt.legend(handles=handels2, prop={"size":16} , loc=2)
+plt.legend(handles=handels2, prop={"size":20} , loc=2)
 
 fig.add_artist(legend1)
 

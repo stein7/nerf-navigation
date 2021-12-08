@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import matplotlib.patches as mpatches
 
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
+
 
 pink    = '#EC6779'
 green   = '#288737'
@@ -22,12 +25,11 @@ nameB = "rrt_stonehenge_compare1"
 nameC = "minsnap_stonehenge_compare1"
 
 names = [nameA, nameB, nameC]
-colors = [pink,blue, green]
+pretty_names = ["Ours", "RRT", "Min Snap"]
 
 # fig = plt.figure(figsize=plt.figaspect(8/11))
-fig = plt.figure(figsize=(11,8))
-ax = fig.add_subplot(1, 1, 1)
-
+# fig = plt.figure(figsize=(11,8))
+# ax = fig.add_subplot(1, 1, 1)
 
 def get_latest_train(name):
     save_number = 0
@@ -52,8 +54,8 @@ collision = []
 control = [] 
 
 handles =[]
-ax_twin = ax.twinx()
-for name,color in zip(names, colors):
+# ax_twin = ax.twinx()
+for name in names:
     data = json.load(open(get_latest_train(name)))
 
     print(name, "total", mean(data['total_cost']))
@@ -62,33 +64,38 @@ for name,color in zip(names, colors):
     collision.append(mean(data['colision_loss']))
     control.append(mean(data['total_cost']) -  mean(data['colision_loss'] ))
 
-    ax.plot(data['total_cost'], c =color, linestyle='--', linewidth =3)
-    ax_twin.plot(data['colision_loss'], c=color, linewidth =3)
+    # ax.plot(data['total_cost'], c =color, linestyle='--', linewidth =3)
+    # ax_twin.plot(data['colision_loss'], c=color, linewidth =3)
 
-    patch = mpatches.Patch(color=color, label = name)
-    handles.append(patch)
+    # patch = mpatches.Patch(color=color, label = name)
+    # handles.append(patch)
 
+fig = plt.figure(figsize=(11,8))
+left_ax = fig.add_subplot(1, 1, 1)
+right_ax = left_ax.twinx()
 
-ax.set_ylabel("total loss", fontsize=20)
-ax_twin.set_ylabel("NeRF collision", fontsize=20)
-ax.set_xlabel("Trajectory time", fontsize=20)
+legend_elements = []
 
-# handles, labels = ax.get_legend_handles_labels()
-# print(labels)
+ind = np.arange(len(control))
+width = 0.35       
+left_ax.bar(ind, collision, width, label='Collision', color=pink, log=True)
+legend_elements.append( Patch(facecolor=pink, label='Collision') )
 
-legend1 =  plt.legend(handles=handles, prop={"size":16} , loc=1)
+right_ax.bar(ind + width, control, width, label='Control', color=green, log=True)
+legend_elements.append( Patch(facecolor=green, label='Control') )
 
-# handels2 = []
-# line1 = Line2D([0], [0], label='Mesh intersection volume', color='k', linestyle='--')
-# line2 = Line2D([0], [0], label='NeRf collision loss', color='k', linestyle='-')
-# handels2.extend([line1, line2])
+left_ax.set_ylabel('NeRF Collision Cost', fontsize=30)
+right_ax.set_ylabel('Contorl Effort', fontsize=30)
+plt.title('Planner Comparision', fontsize=30)
 
-# plt.legend(handles=handels2, prop={"size":16} , loc=2)
+plt.xticks(ind + width / 2, tuple(pretty_names) , fontsize=30)
+left_ax.set_xticklabels(tuple(pretty_names), rotation=0, fontsize=30)
 
-fig.add_artist(legend1)
+# left_ax.legend(loc='best')
+# right_ax.legend(loc='best')
 
+plt.legend(handles=legend_elements, prop={"size":20} , loc=2)
 
-# ax.legend()
 
 plt.show()
 

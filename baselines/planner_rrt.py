@@ -31,6 +31,7 @@ class RRT:
         self.goal_prob = cfg['goal_prob']
         self.max_step_distance = cfg['max_step_distance']
         self.robot_radius = cfg['robot_radius']
+        self.line_step = cfg['rrt_line_step']
 
         # map from child to parent point
         self.graph = { self.hashable(start_state) : None }
@@ -42,19 +43,22 @@ class RRT:
                 new_point = self.end_state
                 print("using final", new_point)
             else:
-                new_point = 2 * np.random.random((3)) - 1
+                # xy from -1 to 1, z from -0.1 to 0.9
+                new_point = np.array([2,2,0.5]) * np.random.random((3)) - np.array([1,1,0.1])
                 print("using random", new_point)
 
-            # if self.in_colision(new_point):
-            #     continue
-            #     print("in collision")
+            if self.in_colision(new_point):
+                continue
+                print("in collision")
 
             # find closest point in tree
             closest = self.find_closest(new_point)
             print("found closest", closest)
 
-            # successful = self.subdivide_line(new_point, closest)
-            successful = self.add_closest(new_point, closest)
+            if self.line_step:
+                successful = self.subdivide_line(new_point, closest)
+            else:
+                successful = self.add_closest(new_point, closest)
 
             if successful and use_final_goal:
                 break
@@ -83,19 +87,18 @@ class RRT:
     def hashable(self, point):
         return tuple( point.round(5) )
 
-
     def add_closest(self, target, tree_node):
         normal = target - tree_node
         distance = np.linalg.norm(normal)
         if distance == 0:
             return False
+        normal = normal/distance
 
-        max_distance = 0.2
-        if distance < max_distance:
+        if distance < self.max_step_distance:
             self.graph[self.hashable(target)] = self.hashable(tree_node)
             return True
         else:
-            next_point = normal/distance * max_distance
+            next_point = tree_node + normal * self.max_step_distance
             if not self.in_colision(next_point):
                 self.graph[self.hashable(next_point)] = self.hashable(tree_node)
         return False
@@ -191,15 +194,17 @@ def get_mesh(renderer, points_per_side = 40):
 
 def main():
     cfg = {
-            "experiment_name": "rrt_stonehenge_compare1_onepoint",
+            "experiment_name": "rrt_stonehenge_compare1",
             "nerf_config_file": 'configs/stonehenge.txt',
             "start_pos": [-0.47, -0.7, 0.1],
             "end_pos": [0.12, 0.51, 0.16],
             "mesh_points_per_side": 40,
+            'rrt_line_step': False,
             'goal_prob': 0.05,
             'max_step_distance': 0.10,
-            'robot_radius': 0.06,
+            'robot_radius': 0.05,
             "minsnap_subsample": 1,
+            "waypoint_dt": 0.1,
             }
 
     experiment_name = cfg['experiment_name']
@@ -221,33 +226,19 @@ def main():
     (basefolder / 'cfg.json').write_text(json.dumps(cfg))
 
     rrt = RRT(start_pos, end_pos, mesh, cfg)
-    traj = MinSnap(rrt.waypoints, subsample=cfg['minsnap_subsample'], nerf=renderer.get_density)
+    traj = MinSnap(rrt.waypoints, subsample=cfg['minsnap_subsample'], nerf=renderer.get_density, waypoint_dt= cfg['waypoint_dt'])
     traj.solve()
 
     traj.save_data(basefolder / "train" / "0.json")
 
 
 def testing():
-    # trimesh.repair.fix_inversion(mesh, multibody=True)
-    # mesh = pymesh.form_mesh(vertices, faces)
-
-    # mesh = trimesh.voxel.ops.matrix_to_marching_cubes(voxels )
-
-    points = coods.reshape(-1,3).detach().numpy()
-    inside = mesh.contains(points)
-    distances = trimesh.proximity.ProximityQuery(mesh).signed_distance(points)
-
-    print(sum(distances < 0))
-    print(sum(inside))
-
-    # mesh.bounding_box.cornejoo
-    print(trimesh.bounds.corners(mesh.bounding_box_oriented.bounds))
-    print(distances)
-
-    # mesh.show()
-    
+    renderer = get_nerf('configs/stonehenge.txt', need_render=False)
+    mesh = get_mesh(renderer)
+    mesh.show()
 
 
 if __name__ == "__main__":
+    # testing()
     main()
 

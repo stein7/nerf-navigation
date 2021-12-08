@@ -378,10 +378,64 @@ def a_star_init(nerf, start_state, end_state, kernel_size = 5):
 
 
 
+def run_many():
+    changes = [{"experiment_name":"random_minsnap_stonehenge_0",
+                    "start_pos": [0.55, -0.02, 0.05],
+                    "end_pos": [-0.72, 0.17, 0.19],}, 
+
+                {"experiment_name":"random_minsnap_stonehenge_1",
+                    "start_pos": [-0.12, -0.92, 0.05],
+                    "end_pos": [-0.1, 0.8, 0.19],}, 
+
+                {"experiment_name":"random_minsnap_stonehenge_2",
+                    "start_pos": [-0.72, -0.75, 0.1],
+                    "end_pos": [0.51, 0.48, 0.16],}, 
+
+                {"experiment_name":"random_minsnap_stonehenge_3",
+                    "start_pos": [-0.42, -0.75, 0.1],
+                    "end_pos": [0.21, 0.48, 0.16],}, 
+
+                {"experiment_name":"random_minsnap_stonehenge_4",
+                    "start_pos": [-0.12, -0.75, 0.1],
+                    "end_pos": [-0.09, 0.48, 0.16],}, 
+
+                {"experiment_name":"random_minsnap_stonehenge_5",
+                    "start_pos": [0.18, -0.75, 0.1],
+                    "end_pos": [-0.39, 0.48, 0.16],}, 
+
+                {"experiment_name":"random_minsnap_stonehenge_6",
+                    "start_pos": [0.48, -0.75, 0.1],
+                    "end_pos": [-0.69, 0.48, 0.16],}, 
+
+                {"experiment_name":"random_minsnap_stonehenge_7",
+                    "start_pos": [0.48, -0.42, 0.1],
+                    "end_pos": [-0.71, 0.83, 0.16],}, 
+
+                {"experiment_name":"random_minsnap_stonehenge_8",
+                    "start_pos": [-0.72, -0.12, 0.1],
+                    "end_pos": [0.49, 0.83, 0.16],}, 
+
+                {"experiment_name":"random_minsnap_stonehenge_9",
+                    "start_pos": [-0.72, -0.42, 0.1],
+                    "end_pos": [0.49, 0.23, 0.16],}, ]
+
+    for change in changes:
+        cfg = { "experiment_name": None,
+                "nerf_config_file": 'configs/stonehenge.txt',
+                "start_pos": None,
+                "end_pos": None,
+                "astar": True,
+                "astar_kernel": 5,
+                "minsnap_subsample": 1,
+                }
+
+        print(change)
+        cfg.update(change)
+        print(cfg)
+        run_planner(cfg)
 
 def real():
-    cfg = {
-            "experiment_name": "minsnap_stonehenge_compare1",
+    cfg = { "experiment_name": "minsnap_stonehenge_compare1",
             "nerf_config_file": 'configs/stonehenge.txt',
             "start_pos": [-0.47, -0.7, 0.1],
             "end_pos": [0.12, 0.51, 0.16],
@@ -389,6 +443,10 @@ def real():
             "astar_kernel": 5,
             "minsnap_subsample": 1,
             }
+
+    run_planner(cfg)
+
+def run_planner(cfg):
 
     experiment_name = cfg['experiment_name']
     renderer = get_nerf(cfg['nerf_config_file'], need_render=False)
@@ -524,4 +582,5 @@ if __name__ == "__main__":
     # testing()
     real()
     # compare_loss()
+    #run_many()
 

@@ -473,6 +473,54 @@ class System:
 
         return obj
 
+
+
+def run_many():
+    changes = [{"name":"random_stonehenge_2",
+                "start_pos": [-0.72, -0.75, 0.1],
+                "end_pos": [0.51, 0.48, 0.16],},
+
+                {"name":"random_stonehenge_3",
+                "start_pos": [-0.42, -0.75, 0.1],
+                "end_pos": [0.21, 0.48, 0.16],},
+
+                {"name":"random_stonehenge_4",
+                "start_pos": [-0.12, -0.75, 0.1],
+                "end_pos": [-0.09, 0.48, 0.16],},
+
+                {"name":"random_stonehenge_5",
+                "start_pos": [0.18, -0.75, 0.1],
+                "end_pos": [-0.39, 0.48, 0.16],},
+
+                {"name":"random_stonehenge_6",
+                "start_pos": [0.48, -0.75, 0.1],
+                "end_pos": [-0.69, 0.48, 0.16],},
+
+                {"name":"random_stonehenge_7",
+                "start_pos": [0.48, -0.42, 0.1],
+                "end_pos": [-0.71, 0.83, 0.16],},]
+
+    for change in changes:
+        cfg = { "experiment_name": None,
+                "nerf_config_file": 'configs/stonehenge.txt',
+                "start_pos": None,
+                "end_pos": None,
+                "T_final": 2,
+                "steps": 20,
+                "lr": 0.01,
+                "epochs_init": 7000,
+                "fade_out_epoch": 0,
+                "fade_out_sharpness": 10,
+                "epochs_update": 250,
+                "astar": True,
+                "astar_kernel": 5,
+                }
+
+        cfg.update(change)
+        run_planner(cfg)
+
+
+
 def main():
 
     cfg = { "experiment_name": "ours_stonehenge_compare1",

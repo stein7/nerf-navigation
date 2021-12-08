@@ -143,14 +143,14 @@ def main_loop_selfcontained():
     ###TODO: MOVE THESE CONFIGS OUTSIDE
     renderer = get_nerf('configs/stonehenge.txt', need_render=True)
 
-    hwf = render.hwf
-    chunk = render.chunk
-    K = render.K
+    hwf = renderer.hwf
+    chunk = renderer.chunk
+    K = renderer.K
     # no point in loading full data - save in log files 
 
     # from get_nerf args
     # need to be stored in renderer first
-    base_dit = render.cfg['basedir']
+    base_dit = renderer.args.basedir
     scene_dir = os.path.join("test_mainloop", "test", 'trajectory_viz')
     os.makedirs(scene_dir, exist_ok=True)
 

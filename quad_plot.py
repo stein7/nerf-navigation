@@ -303,11 +303,11 @@ class System:
         # S =   S,B * S,_
         colision_prob = torch.mean(density * distance[:,None], dim = -1) 
 
-        if self.epoch < self.fade_out_epoch:
-            t = torch.linspace(0,1, colision_prob.shape[0])
-            position = self.epoch/self.fade_out_epoch
-            mask = torch.sigmoid(self.fade_out_sharpness * (position - t)).to(device)
-            colision_prob = colision_prob * mask
+        # if self.epoch < self.fade_out_epoch:
+        #     t = torch.linspace(0,1, colision_prob.shape[0])
+        #     position = self.epoch/self.fade_out_epoch
+        #     mask = torch.sigmoid(self.fade_out_sharpness * (position - t)).to(device)
+        #     colision_prob = colision_prob * mask
 
         #PARAM cost function shaping
         return 1000*fz**2 + 0.01*torques**4 + colision_prob * 1e6, colision_prob*1e6

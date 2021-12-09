@@ -269,7 +269,7 @@ class MinSnap:
         return torch.cat( [pos, vel, rot_matrix.reshape(-1, 9), omega], dim=-1 )
 
 
-    def get_state_cost(self) -> TensorType["states"]:
+    def get_state_cost(self):
         # copied from quad_planner to offer comparison
         pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
 
@@ -506,43 +506,65 @@ def run_planner(cfg):
 
 
 def compare_loss():
-    f = 'experiments/ours_stonehenge_compare1/train/139.json'
+    # f = 'experiments/ours_stonehenge_compare1/train/139.json'
+    f = 'experiments/ours_stonehenge_compare1/train/1.json'
     data = json.load(open(f))
+
+    renderer = get_nerf('configs/stonehenge.txt', need_render=False)
 
     poses = np.array(data['poses'])
     positions = poses[:, :3 , 3]
     waypoints = np.concatenate([positions, np.zeros((poses.shape[0], 1))], axis=-1)
     print(waypoints.shape)
-    traj = MinSnap(waypoints, subsample=1)
+    traj = MinSnap(waypoints, subsample=1, nerf=renderer.get_density)
     traj.solve()
 
     pos, vel, accel, _, omega, _, actions = traj.calc_everything()
+    total_cost, col_cost = traj.get_state_cost()
+    ctrl_cost = total_cost - col_cost
 
     ours_actions = np.array( data['actions'])
     ours_omega = np.array( data['full_states'])[:, -3:]
+    ours_total_cost = np.array(data['total_cost'])
+    ours_col_cost = np.array(data['colision_loss'])
+
+    ours_ctrl_cost = ours_total_cost - ours_col_cost
+
+    print(total_cost)
+    print(ours_total_cost)
 
     fig = plt.figure()
-    ax1 = fig.add_subplot(2, 2, 1)
-    ax2 = fig.add_subplot(2, 2, 2)
-    ax3 = fig.add_subplot(2, 2, 3)
-    ax4 = fig.add_subplot(2, 2, 4)
+    ax1 = fig.add_subplot(3, 2, 1)
+    ax2 = fig.add_subplot(3, 2, 2)
+    ax3 = fig.add_subplot(3, 2, 3)
+    ax4 = fig.add_subplot(3, 2, 4)
+    ax5 = fig.add_subplot(3, 2, 5)
+    ax6 = fig.add_subplot(3, 2, 6)
 
     ax1.plot(actions[...,0], label="df_t0")
     ax1.plot(ours_actions[...,0], label="our_t0")
+    ax1.legend()
 
     ax2.plot(actions[...,1], label="df_tx")
     ax2.plot(ours_actions[...,1], label="our_tx")
+    ax2.legend()
 
     ax3.plot(actions[...,2], label="df_ty")
     ax3.plot(ours_actions[...,2], label="our_ty")
+    ax3.legend()
 
     ax4.plot(actions[...,3], label="df_tz")
     ax4.plot(ours_actions[...,3], label="our_tz")
-
-    ax1.legend()
-    ax2.legend()
-    ax3.legend()
     ax4.legend()
+
+    ax5.plot(ctrl_cost, label="df_ctrl_cost")
+    ax5.plot(ours_ctrl_cost, label="our_ctrl_cost")
+    ax5.legend()
+
+    ax6.plot(col_cost, label="df_col_cost")
+    ax6.plot(ours_col_cost, label="our_col_cost")
+    ax6.legend()
+
     plt.show()
 
 
@@ -588,6 +610,6 @@ def testing():
 if __name__ == "__main__":
     # testing()
     # real()
-    # compare_loss()
-    run_many()
+    compare_loss()
+    # run_many()
 

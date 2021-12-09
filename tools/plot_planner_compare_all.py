@@ -18,6 +18,7 @@ blue    = '#4678a8'
 yellow  = '#CBBA4E'
 cyan    = '#6BCCeC'
 magenta = '#A83676'
+orange  = '#ff9e14'
 
 
 nameA = "random_stonehenge_"
@@ -61,7 +62,7 @@ def collision_and_control_cost(name):
     print(name, "total", mean(total_cost))
     print(name, "colision", mean(colision_cost))
 
-    return mean(colision_cost), mean(total_cost) -  mean(colision_cost )
+    return mean(colision_cost)*1e3, mean(total_cost) -  mean(colision_cost )
 
 collision = []
 control = [] 
@@ -95,15 +96,19 @@ right_ax = left_ax.twinx()
 legend_elements = []
 
 ind = np.arange(len(control))
-width = 0.35       
-left_ax.bar(ind, collision, width, label='Collision', color=cyan, log=True)
+width = 0.25       
+left_ax.bar(ind - width/2, collision, width, label='Collision', color=cyan, log=True)
 legend_elements.append( Patch(facecolor=cyan, label='Collision') )
 
-right_ax.bar(ind + width, control, width, label='Control', color=magenta, log=True)
+left_ax.bar(ind + width/2, control, width, label='Control', color=magenta, log=True)
 legend_elements.append( Patch(facecolor=magenta, label='Control') )
 
-left_ax.set_ylabel('NeRF Collision Cost', fontsize=30)
-right_ax.set_ylabel('Contorl Effort', fontsize=30)
+right_ax.set_ylim( 0, 1)
+right_ax.bar(ind + width * 3/2, failure_rate, width, label='Failure Rate', color=orange)
+legend_elements.append( Patch(facecolor=orange, label='Failure Rate') )
+
+left_ax.set_ylabel('Control and NeRF Collision Cost', fontsize=30)
+right_ax.set_ylabel('Failure Rate', fontsize=30)
 # plt.title('Planner Comparision', fontsize=30)
 
 plt.xticks(ind + width / 2, tuple(pretty_names) , fontsize=30)

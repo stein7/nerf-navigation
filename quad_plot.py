@@ -1,44 +1,58 @@
 import torch
-torch.autograd.set_detect_anomaly(True)
+from torch._C import device
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
 import json
+import shutil
+import pathlib
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-from torchtyping import TensorType, patch_typeguard
-from typeguard import typechecked
+#from torchtyping import TensorType, patch_typeguard
+#from typeguard import typechecked
 
-patch_typeguard()
+#patch_typeguard()
 
+#from load_nerf import get_nerf
 
-from load_nerf import get_nerf
+#from quad_helpers import Simulator, QuadPlot
+from quad_helpers import rot_matrix_to_vec, next_rotation
+from quad_helpers import astar
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # # hard coded "nerf" for testing. see below to import real nerf
-# def get_nerf(*args, **kwargs):
-#     @typechecked
-#     def nerf(points: TensorType["batch":..., 3]) -> TensorType["batch":...]:
-#         x = points[..., 0]
-#         y = points[..., 1] - 1
+# def get_manual_nerf(name):
+#     if name =='empty':
+#         class FakeRenderer:
+#             @typechecked
+#             def get_density(self, points: TensorType["batch":..., 3]) -> TensorType["batch":...]:
+#                 return torch.zeros_like( points[...,0] )
+#         return FakeRenderer()#
 
-#         return torch.sigmoid( (2 -(x**2 + y**2)) * 8 )
-#     return nerf
+#     if name =='cylinder':
+#         class FakeRenderer:
+#             @typechecked
+#             def get_density(self, points: TensorType["batch":..., 3]) -> TensorType["batch":...]:
+#                 x = points[..., 0]
+#                 y = points[..., 1] - 1
 
+#                 return torch.sigmoid( (2 -(x**2 + y**2)) * 8 )
+#         return FakeRenderer()
 
-def plot_nerf(ax_map, nerf):
-    # can plot nerf in matplotlib but hard to be interpretable
-    pass
+#     raise ValueError
+
 
 
 class System:
-    def __init__(self, nerf, start_state, end_state,
-                        start_vel, end_vel, 
-                        cfg):
-        self.nerf = nerf
+    def __init__(self, renderer, start_state, end_state, cfg):
+        self.renderer = renderer
+        self.nerf = renderer.get_density
 
+        self.cfg                = cfg
         self.T_final            = cfg['T_final']
         self.steps              = cfg['steps']
         self.lr                 = cfg['lr']
@@ -47,16 +61,24 @@ class System:
         self.fade_out_epoch     = cfg['fade_out_epoch']
         self.fade_out_sharpness = cfg['fade_out_sharpness']
 
+        self.CHURCH = False
+
         self.dt = self.T_final / self.steps
 
-        # create initial and final 3 states to constrain: position, velocity and possibly angle in the future
-        self.start_states = start_state[None,:] + torch.tensor([-1,0,1])[:,None] * self.dt * start_vel
-        self.end_states   = end_state[None,:]   + torch.tensor([-1,0,1])[:,None] * self.dt * end_vel  
+        self.mass = 1
+        self.J = torch.eye(3)
+        self.g = torch.tensor([0,0,-10])
+
+        self.start_state = start_state
+        self.end_state   = end_state
 
         slider = torch.linspace(0, 1, self.steps)[1:-1, None]
 
-        states = (1-slider) * self.start_states[-1,:] + slider * self.end_states[0,:]
+        states = (1-slider) * self.full_to_reduced_state(start_state) + \
+                    slider  * self.full_to_reduced_state(end_state)
+
         self.states = states.clone().detach().requires_grad_(True)
+        self.initial_accel = torch.tensor([10.0,10.0]).requires_grad_(True)
 
         #PARAM this sets the shape of the robot body point cloud
         body = torch.stack( torch.meshgrid( torch.linspace(-0.05, 0.05, 10),
@@ -64,60 +86,129 @@ class System:
                                             torch.linspace(-0.02, 0.02,  5)), dim=-1)
         self.robot_body = body.reshape(-1, 3)
         # self.robot_body = torch.zeros(1,3)
+        if self.CHURCH:
+            self.robot_body = self.robot_body/2
 
         self.epoch = 0
 
+    def full_to_reduced_state(self, state):
+        pos = state[:3]
+        R = state[6:15].reshape((3,3))
+
+        x,y,_ = R @ torch.tensor( [1.0, 0, 0 ] )
+        angle = torch.atan2(y, x)
+
+        return torch.cat( [pos, torch.tensor([angle]) ], dim = -1).detach()
+
+    def a_star_init(self):
+        side = 100 #PARAM grid size
+
+        if self.CHURCH:
+            x_linspace = torch.linspace(-2,-1, side)
+            y_linspace = torch.linspace(-1,0, side)
+            z_linspace = torch.linspace(0,1, side)
+
+            coods = torch.stack( torch.meshgrid( x_linspace, y_linspace, z_linspace ), dim=-1)
+        else:
+            linspace = torch.linspace(-1,1, side) #PARAM extends of the thing
+            # side, side, side, 3
+            coods = torch.stack( torch.meshgrid( linspace, linspace, linspace ), dim=-1)
+
+        kernel_size = 5 # 100/5 = 20. scene size of 2 gives a box size of 2/20 = 0.1 = drone size
+        output = self.nerf(coods)
+        maxpool = torch.nn.MaxPool3d(kernel_size = kernel_size)
+        #PARAM cut off such that neural network outputs zero (pre shifted sigmoid)
+
+        # 20, 20, 20
+        occupied = maxpool(output[None,None,...])[0,0,...] > 0.3
+
+        grid_size = side//kernel_size
+
+        #convert to index cooredinates
+        start_grid_float = grid_size*(self.start_state[:3] + 1)/2
+        end_grid_float   = grid_size*(self.end_state  [:3] + 1)/2
+        start = tuple(int(start_grid_float[i]) for i in range(3) )
+        end =   tuple(int(end_grid_float[i]  ) for i in range(3) )
+
+        print(start, end)
+        path = astar(occupied, start, end)
+
+        # convert from index cooredinates
+        squares =  2* (torch.tensor( path, dtype=torch.float)/grid_size) -1
+
+        #adding way
+        states = torch.cat( [squares, torch.zeros( (squares.shape[0], 1) ) ], dim=-1)
+
+        #prevents weird zero derivative issues
+        randomness = torch.normal(mean= 0, std=0.001*torch.ones(states.shape) )
+        states += randomness
+
+        # smooth path (diagram of which states are averaged)
+        # 1 2 3 4 5 6 7
+        # 1 1 2 3 4 5 6
+        # 2 3 4 5 6 7 7
+        prev_smooth = torch.cat([states[0,None, :], states[:-1,:]],        dim=0)
+        next_smooth = torch.cat([states[1:,:],      states[-1,None, :], ], dim=0)
+        states = (prev_smooth + next_smooth + states)/3
+
+        self.states = states.clone().detach().requires_grad_(True)
+
     def params(self):
-        return [self.states]
+        return [self.initial_accel, self.states]
 
-    def get_states(self):
-        return torch.cat( [self.start_states, self.states, self.end_states], dim=0)
+    def calc_everything(self):
 
-    def get_actions(self):
-        mass = 1
+        start_pos   = self.start_state[None, 0:3]
+        start_v     = self.start_state[None, 3:6]
+        start_R     = self.start_state[6:15].reshape((1, 3, 3))
+        start_omega = self.start_state[None, 15:]
 
-        rot_matrix, z_accel = self.get_rots_and_accel()
+        end_pos   = self.end_state[None, 0:3]
+        end_v     = self.end_state[None, 3:6]
+        end_R     = self.end_state[6:15].reshape((1, 3, 3))
+        end_omega = self.end_state[None, 15:]
 
-        #TODO horrible -> there should be a better way without rotation matricies
-        #calculate angular velocities
-        ang_vel = rot_matrix_to_vec( rot_matrix[1:, ...] @ rot_matrix[:-1, ...].swapdims(-1,-2) ) / self.dt
+        next_R = next_rotation(start_R, start_omega, self.dt)
 
-        # if not torch.allclose( rot_matrix @ rot_matrix.swapdims(-1,-2), torch.eye(3)):
-        #     print( rot_matrix @ rot_matrix.swapdims(-1,-2), torch.eye(3) )
-        #     assert False
+        # start, next, decision_states, last, end
 
-        #calculate angular acceleration
-        angular_accel = (ang_vel[1:,...] - ang_vel[:-1,...])/self.dt
+        start_accel = start_R @ torch.tensor([0,0,1.0]) * self.initial_accel[0] + self.g
+        next_accel = next_R @ torch.tensor([0,0,1.0]) * self.initial_accel[1] + self.g
 
-        J = torch.eye(3)
-        # S, 3    3,3      S, 3, 1
-        torques = (J @ angular_accel[...,None])[...,0]
+        next_vel = start_v + start_accel * self.dt
+        after_next_vel = next_vel + next_accel * self.dt
 
-        return torch.cat([ z_accel*mass, torques ], dim=-1)
+        next_pos = start_pos + start_v * self.dt
+        after_next_pos = next_pos + next_vel * self.dt
+        after2_next_pos = after_next_pos + after_next_vel * self.dt
+    
+        # position 2 and 3 are unused - but the atached roations are
+        current_pos = torch.cat( [start_pos, next_pos, after_next_pos, after2_next_pos, self.states[2:, :3], end_pos], dim=0)
 
-    def get_rots_and_accel(self):
-        g = torch.tensor([0,0,-10])
+        prev_pos = current_pos[:-1, :]
+        next_pos = current_pos[1: , :]
 
-        states = self.get_states()
-        prev_state = states[:-1, :]
-        next_state = states[1:, :]
+        current_vel = (next_pos - prev_pos)/self.dt
+        current_vel = torch.cat( [ current_vel, end_v], dim=0)
 
-        diff = (next_state - prev_state)/self.dt
-        vel = diff[..., :3]
+        prev_vel = current_vel[:-1, :]
+        next_vel = current_vel[1: , :]
 
-        prev_vel = vel[:-1, :]
-        next_vel = vel[1:, :]
+        current_accel = (next_vel - prev_vel)/self.dt - self.g
 
-        target_accel = (next_vel - prev_vel)/self.dt - g
-        z_accel     = torch.norm(target_accel, dim=-1, keepdim=True)
+        # duplicate last accceleration - its not actaully used for anything (there is no action at last state)
+        current_accel = torch.cat( [ current_accel, current_accel[-1,None,:] ], dim=0)
+
+        accel_mag     = torch.norm(current_accel, dim=-1, keepdim=True)
 
         # needs to be pointing in direction of acceleration
-        z_axis_body = target_accel/z_accel
+        z_axis_body = current_accel/accel_mag
 
-        #duplicate first and last angle to enforce zero angular velocity constraint
-        z_axis_body = torch.cat( [ z_axis_body[:1,:], z_axis_body, z_axis_body[-1:,:]], dim=0)
+        # remove states with rotations already constrained
+        z_axis_body = z_axis_body[2:-1, :]
 
-        z_angle = states[:,3]
+        z_angle = self.states[:,3]
+
         in_plane_heading = torch.stack( [torch.sin(z_angle), -torch.cos(z_angle), torch.zeros_like(z_angle)], dim=-1)
 
         x_axis_body = torch.cross(z_axis_body, in_plane_heading, dim=-1)
@@ -126,45 +217,79 @@ class System:
 
         # S, 3, 3 # assembled manually from basis vectors
         rot_matrix = torch.stack( [x_axis_body, y_axis_body, z_axis_body], dim=-1)
-        return rot_matrix, z_accel
 
-    @typechecked
-    def body_to_world(self, points: TensorType["batch", 3]) -> TensorType["states", "batch", 3]:
-        states = self.get_states()
-        pos = states[:, :3]
-        rot_matrix, _ = self.get_rots_and_accel()
+        rot_matrix = torch.cat( [start_R, next_R, rot_matrix, end_R], dim=0)
+
+        current_omega = rot_matrix_to_vec( rot_matrix[1:, ...] @ rot_matrix[:-1, ...].swapdims(-1,-2) ) / self.dt
+        current_omega = torch.cat( [ current_omega, end_omega], dim=0)
+
+        prev_omega = current_omega[:-1, :]
+        next_omega = current_omega[1:, :]
+
+        angular_accel = (next_omega - prev_omega)/self.dt
+        # duplicate last ang_accceleration - its not actaully used for anything (there is no action at last state)
+        angular_accel = torch.cat( [ angular_accel, angular_accel[-1,None,:] ], dim=0)
+
+        # S, 3    3,3      S, 3, 1
+        torques = (self.J @ angular_accel[...,None])[...,0]
+        actions =  torch.cat([ accel_mag*self.mass, torques ], dim=-1)
+
+        return current_pos, current_vel, current_accel, rot_matrix, current_omega, angular_accel, actions
+
+    def get_full_states(self):
+        pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
+        return torch.cat( [pos, vel, rot_matrix.reshape(-1, 9), omega], dim=-1 )
+
+    def get_actions(self):
+        pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
+
+        if not torch.allclose( actions[:2, 0], self.initial_accel ):
+            print(actions)
+            print(self.initial_accel)
+        return actions
+
+    def get_next_action(self):
+        actions = self.get_actions()
+        # fz, tx, ty, tz
+        return actions[0, :]
+
+    def body_to_world(self, points):
+        pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
 
         # S, 3, P    =    S,3,3       3,P       S, 3, _
         world_points =  rot_matrix @ points.T + pos[..., None]
         return world_points.swapdims(-1,-2)
 
-    def get_cost(self):
-        actions = self.get_actions()
+    def get_state_cost(self):
+        pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
 
-        fz = actions[:, 0]
-        torques = torch.norm(actions[:, 1:], dim=-1)**2
+        fz = actions[:, 0].to(device)
+        torques = torch.norm(actions[:, 1:], dim=-1).to(device)
 
-        states = self.get_states()
-        prev_state = states[:-1, :]
-        next_state = states[1:, :]
+        # S, B, 3  =  S, _, 3 +      _, B, 3   X    S, _,  3
+        B_body, B_omega = torch.broadcast_tensors(self.robot_body, omega[:,None,:])
+        point_vels = vel[:,None,:] + torch.cross(B_body, B_omega, dim=-1)
+
+        # S, B
+        distance = torch.sum( vel**2 + 1e-5, dim = -1)**0.5
+        # S, B
+        density = self.nerf( self.body_to_world(self.robot_body) )**2
 
         # multiplied by distance to prevent it from just speed tunnelling
-        distance = torch.sum( (next_state - prev_state)[...,:3]**2 + 1e-5, dim = -1)**0.5
-        density = self.nerf( self.body_to_world(self.robot_body)[1:,...] )**2
-        colision_prob = torch.mean( density, dim = -1) * distance
-        colision_prob = colision_prob[1:]
+        # S =   S,B * S,_
+        colision_prob = torch.mean(density * distance[:,None], dim = -1) 
 
         if self.epoch < self.fade_out_epoch:
             t = torch.linspace(0,1, colision_prob.shape[0])
             position = self.epoch/self.fade_out_epoch
-            mask = torch.sigmoid(self.fade_out_sharpness * (position - t))
+            mask = torch.sigmoid(self.fade_out_sharpness * (position - t)).to(device)
             colision_prob = colision_prob * mask
 
         #PARAM cost function shaping
-        return 1000*fz**2 + 0.01*torques**2 + colision_prob * 1e6, colision_prob*1e6
+        return 1000*fz**2 + 0.01*torques**4 + colision_prob * 1e6, colision_prob*1e6
 
     def total_cost(self):
-        total_cost, colision_loss = self.get_cost()
+        total_cost, colision_loss  = self.get_state_cost()
         return torch.mean(total_cost)
 
     def learn_init(self):
@@ -181,217 +306,279 @@ class System:
 
                 save_step = 50
                 if it%save_step == 0:
-                    self.save_poses("paths/"+str(it//save_step)+"_testing.json")
+                    if hasattr(self, "basefolder"):
+                        self.save_poses(self.basefolder / "train_poses" / (str(it//save_step)+".json"))
+                        self.save_graph(self.basefolder / "train_graph" / (str(it//save_step)+".json"))
+                    else:
+                        print("WANRING: data not saved!")
+
 
         except KeyboardInterrupt:
             print("finishing early")
 
-    def learn_update(self):
+    def learn_update(self, iteration):
         opt = torch.optim.Adam(self.params(), lr=self.lr)
 
-        try:
-            for it in range(self.update_epochs):
-                opt.zero_grad()
-                self.epoch = it
-                loss = self.total_cost()
-                print(it, loss)
-                loss.backward()
-                opt.step()
+        for it in range(self.epochs_update):
+            opt.zero_grad()
+            self.epoch = it
+            loss = self.total_cost()
+            print(it, loss)
+            loss.backward()
+            opt.step()
+            # it += 1
 
-                save_step = 50
-                if it%save_step == 0:
-                    self.save_poses("paths/"+str(it//save_step)+"_testing.json")
+            # if (it > self.epochs_update and self.max_residual < 1e-3):
+            #     break
 
-        except KeyboardInterrupt:
-            print("finishing early")
+            save_step = 50
+            if it%save_step == 0:
+                if hasattr(self, "basefolder"):
+                    self.save_poses(self.basefolder / "execute_poses" / (str(it//save_step)+ f"_iter{iteration}.json"))
+                    self.save_graph(self.basefolder / "execute_graph" / (str(it//save_step)+ f"_iter{iteration}.json"))
+                else:
+                    print("WANRING: data not saved!")
 
-    def update_state(self, measured_state: TensorType["state_dim"]):
-        pass
+    def update_state(self, measured_state):
+        pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
 
+        self.start_state = measured_state
+        self.states = self.states[1:, :].detach().requires_grad_(True)
+        self.initial_accel = actions[1:3, 0].detach().requires_grad_(True)
+        # print(self.initial_accel.shape)
 
-    def plot(self, fig = None):
-        if fig == None:
-            fig = plt.figure(figsize=(16, 8))
+    def plot(self, quadplot):
+        quadplot.trajectory( self, "g" )
+        ax = quadplot.ax_graph
 
-        ax_map = fig.add_subplot(1, 2, 1, projection='3d')
-        ax_graph = fig.add_subplot(1, 2, 2)
-        self.plot_map(ax_map)
-        plot_nerf(ax_map, self.nerf)
+        pos, vel, accel, _, omega, _, actions = self.calc_everything()
+        actions = actions.cpu().detach().numpy()
+        pos = pos.cpu().detach().numpy()
+        vel = vel.cpu().detach().numpy()
+        omega = omega.cpu().detach().numpy()
 
-        self.plot_graph(ax_graph) 
-        plt.tight_layout()
-        plt.show()
-
-    def plot_graph(self, ax):
-        actions = self.get_actions().detach().numpy() 
         ax.plot(actions[...,0], label="fz")
         ax.plot(actions[...,1], label="tx")
         ax.plot(actions[...,2], label="ty")
         ax.plot(actions[...,3], label="tz")
 
-        # states = self.states.detach().numpy()
-        # ax.plot(states[...,0], label="px")
-        # ax.plot(states[...,4], label="vx")
-        # ax.plot(states[...,7], label="ey")
+        ax.plot(pos[...,0], label="px")
+        # ax.plot(pos[...,1], label="py")
+        # ax.plot(pos[...,2], label="pz")
 
-        ax_right = ax.twinx()
+        ax.plot(vel[...,0], label="vx")
+        # ax.plot(vel[...,1], label="vy")
+        ax.plot(vel[...,2], label="vz")
 
-        total_cost, colision_loss = self.get_cost()
+        # ax.plot(omega[...,0], label="omx")
+        ax.plot(omega[...,1], label="omy")
+        # ax.plot(omega[...,2], label="omz")
+
+        ax_right = quadplot.ax_graph_right
+
+        total_cost, colision_loss = self.get_state_cost()
         ax_right.plot(total_cost.detach().numpy(), 'black', label="cost")
         ax_right.plot(colision_loss.detach().numpy(), 'cyan', label="colision")
         ax.legend()
 
-    def plot_map(self, ax):
-        ax.auto_scale_xyz([0.0, 1.0], [0.0, 1.0], [0.0, 1.0])
-        ax.set_ylim3d(-1, 1)
-        ax.set_xlim3d(-1, 1)
-        ax.set_zlim3d( 0, 1)
-
-        # PLOT PATH
-        # S, 1, 3
-        pos = self.body_to_world( torch.zeros((1,3))).detach().numpy()
-        # print(pos.shape)
-        ax.plot( pos[:,0,0], pos[:,0,1],   pos[:,0,2],  )
-
-        # PLOTS BODY POINTS
-        # S, P, 2
-        body_points = self.body_to_world( self.robot_body ).detach().numpy()
-        for state_body in body_points:
-            ax.plot( *state_body.T, "g.", ms=72./ax.figure.dpi, alpha = 0.5)
-
-        # PLOTS AXIS
-        # create point for origin, plus a right-handed coordinate indicator.
-        size = 0.05
-        points = torch.tensor( [[0, 0, 0], [size, 0, 0], [0, size, 0], [0, 0, size]])
-        colors = ["r", "g", "b"]
-
-        # S, 4, 2
-        points_world_frame = self.body_to_world(points).detach().numpy()
-        for state_axis in points_world_frame:
-            for i in range(1, 4):
-                ax.plot(state_axis[[0,i], 0],
-                        state_axis[[0,i], 1],
-                        state_axis[[0,i], 2],
-                    c=colors[i - 1],)
-
-
     def save_poses(self, filename):
-        states = self.get_states()
-        rot_mats, _ = self.get_rots_and_accel()
-
+        positions, _, _, rot_matrix, _, _, _ = self.calc_everything()
+        poses = []
+        pose_dict = {}
         with open(filename,"w+") as f:
-            for pos, rot in zip(states[...,:3], rot_mats):
+            for pos, rot in zip(positions, rot_matrix):
                 pose = np.zeros((4,4))
-                pose[:3, :3] = rot.detach().numpy()
-                pose[:3, 3]  = pos.detach().numpy()
+                pose[:3, :3] = rot.cpu().detach().numpy()
+                pose[:3, 3]  = pos.cpu().detach().numpy()
                 pose[3,3] = 1
 
-                json.dump(pose.tolist(), f)
-                f.write('\n')
+                poses.append(pose.tolist())
+            pose_dict["poses"] = poses
+            json.dump(pose_dict, f)
+
+    def save_graph(self, filename):
+        positions, vel, _, rot_matrix, omega, _, actions = self.calc_everything()
+        total_cost, colision_loss  = self.get_state_cost()
+
+        output = {"colision_loss": colision_loss.cpu().detach().numpy().tolist(),
+                  "pos": positions.cpu().detach().numpy().tolist(),
+                  "actions": actions.cpu().detach().numpy().tolist(),
+                  "total_cost": total_cost.cpu().detach().numpy().tolist()}
+
+        with open(filename,"w+") as f:
+            json.dump( output,  f)
+
+    def save_progress(self, filename):
+        if hasattr(self.renderer, "config_filename"):
+            config_filename = self.renderer.config_filename
+        else:
+            config_filename = None
+
+        to_save = {"cfg": self.cfg,
+                    "start_state": self.start_state,
+                    "end_state": self.end_state,
+                    "states": self.states,
+                    "initial_accel":self.initial_accel,
+                    "config_filename": config_filename,
+                    }
+        torch.save(to_save, filename)
 
 
+    # def load_progress(cls, filename, renderer=None):
+    #     # a note about loading: it won't load the optimiser learned step sizes
+    #     # so the first couple gradient steps can be quite bad
+
+    #     loaded_dict = torch.load(filename)
+    #     print(loaded_dict)
+
+    #     if renderer == None:
+    #         assert loaded_dict['config_filename'] is not None
+    #         renderer = load_nerf(loaded_dict['config_filename'])
+
+    #     obj = cls(renderer, loaded_dict['start_state'], loaded_dict['end_state'], loaded_dict['cfg'])
+    #     obj.states = loaded_dict['states'].requires_grad_(True)
+    #     obj.initial_accel = loaded_dict['initial_accel'].requires_grad_(True)
+
+    #     return obj
+
+'''
 def main():
-    #PARAM nerf config
 
-    #PARAM start and end positions for the planner. [x,y,z,yaw]
+    # violin - astar
+    # renderer = get_nerf('configs/violin.txt')
+    # start_state = torch.tensor([0.44, -0.23, 0.2, 0])
+    # end_state = torch.tensor([-0.58, 0.66, 0.15, 0])
 
-    # nerf = get_nerf('configs/playground.txt')
-    # playgroud - under
-    # start_state = torch.tensor([0, -0.8, 0.01, 0])
-    # end_state   = torch.tensor([0,  0.9, 0.6 , 0])
-    
-    # playgroud - upper
-    # start_state = torch.tensor([-0.11, -0.7, 0.7, 0])
-    # end_state   = torch.tensor([-0.11, 0.45, 0.7, 0])
+    #playground
+    experiment_name = "playground_slide"
+    renderer = get_nerf('configs/playground.txt')
 
-    # playground - diag
-    # start_state = torch.tensor([ 0.25, -0.47, 0.01, 0])
-    # end_state   = torch.tensor([-0.25,  0.6,  0.6 , 0])
+    # under slide
+    start_pos = torch.tensor([-0.3, -0.27, 0.06])
+    end_pos = torch.tensor([0.02, 0.58, 0.65])
 
-    # playground - middle
-    # start_state = torch.tensor([ 0.5, 0.2, 0.3, 0])
-    # end_state   = torch.tensor([-0.3,   0, 0.5 , 0])
+    # around slide
+    # start_pos = torch.tensor([-0.3, -0.27, 0.06])
+    # end_pos = torch.tensor([-0.14, 0.6, 0.78])
 
-    nerf = get_nerf('configs/violin.txt')
-    # violin - simple
-    # start_state = torch.tensor([-0.3 ,-0.5, 0.1, 0])
-    # end_state   = torch.tensor([-0.35, 0.7, 0.15 , 0])
 
-    # violin - dodge
-    # start_state = torch.tensor([-0.35,-0.5, 0.05, 0])
-    # end_state   = torch.tensor([ 0.1,  0.6, 0.3 , 0])
+    #stonehenge
+    # renderer = get_nerf('configs/stonehenge.txt')
+    # start_state = torch.tensor([-0.06, -0.79, 0.2, 0])
+    # end_state = torch.tensor([-0.46, 0.55, 0.16, 0])
 
-    # violin - middle
-    start_state = torch.tensor([0,-0.5, 0.1, 0])
-    end_state   = torch.tensor([0, 0.7, 0.15 , 0])
+    # start_pos = torch.tensor([-0.05,-0.9, 0.2])
+    # end_pos   = torch.tensor([-1 , 0.7, 0.35])
+    # start_pos = torch.tensor([-1, 0, 0.2])
+    # end_pos   = torch.tensor([ 1, 0, 0.5])
 
-    #PARAM initial and final velocities
-    start_vel = torch.tensor([0, 0, 0, 0])
-    end_vel   = torch.tensor([0, 0, 0, 0])
 
-    #PARAM
+    start_R = vec_to_rot_matrix( torch.tensor([0.0,0.0,0]))
+    start_state = torch.cat( [start_pos, torch.tensor([0,0,0]), start_R.reshape(-1), torch.zeros(3)], dim=0 )
+    end_state   = torch.cat( [end_pos,   torch.zeros(3), torch.eye(3).reshape(-1), torch.zeros(3)], dim=0 )
+
+    # experiment_name = "test" 
+    # filename = "line.plan"
+    # renderer = get_manual_nerf("empty")
+    # renderer = get_manual_nerf("cylinder")
 
     cfg = {"T_final": 2,
             "steps": 20,
-            "lr": 0.001,
-            "epochs_init": 2000,
-            "fade_out_epoch": 1000,
+            "lr": 0.01,
+            "epochs_init": 2500,
+            "fade_out_epoch": 0,
             "fade_out_sharpness": 10,
-            "epochs_update": 100,
+            "epochs_update": 250,
             }
 
-    traj = System(nerf, start_state, end_state, start_vel, end_vel, cfg)
+
+    basefolder = "experiments" / pathlib.Path(experiment_name)
+    if basefolder.exists():
+        print(basefolder, "already exists!")
+        if input("Clear it before continuing? [y/N]:").lower() == "y":
+            shutil.rmtree(basefolder)
+    basefolder.mkdir()
+    (basefolder / "train_poses").mkdir()
+    (basefolder / "train_graph").mkdir()
+
+    print("created", basefolder)
+
+    traj = System(renderer, start_state, end_state, cfg)
+    # traj = System.load_progress(filename, renderer); traj.epochs_update = 250 #change depending on noise
+
+    traj.basefolder = basefolder
+
+    traj.a_star_init()
+
+    # quadplot = QuadPlot()
+    # traj.plot(quadplot)
+    # quadplot.show()
 
     traj.learn_init()
 
+    traj.save_progress(basefolder / "trajectory.pt")
 
-    #PARAM file to save the trajectory
-    traj.save_poses("paths/playground_testing.json")
-    traj.plot()
+    quadplot = QuadPlot()
+    traj.plot(quadplot)
+    quadplot.show()
 
-@typechecked
-def rot_matrix_to_vec( R: TensorType["batch":..., 3, 3]) -> TensorType["batch":..., 3]:
-    batch_dims = R.shape[:-2]
 
-    trace = torch.diagonal(R, dim1=-2, dim2=-1).sum(-1)
+    save = Simulator(start_state)
+    save.copy_states(traj.get_full_states())
 
-    def acos_safe(x, eps=1e-4):
-        """https://github.com/pytorch/pytorch/issues/8069"""
-        slope = np.arccos(1-eps) / eps
-        # TODO: stop doing this allocation once sparse gradients with NaNs (like in
-        # th.where) are handled differently.
-        buf = torch.empty_like(x)
-        good = abs(x) <= 1-eps
-        bad = ~good
-        sign = torch.sign(x[bad])
-        buf[good] = torch.acos(x[good])
-        buf[bad] = torch.acos(sign * (1 - eps)) - slope*sign*(abs(x[bad]) - 1 + eps)
-        return buf
+    if False: # for mpc control
+        sim = Simulator(start_state)
+        sim.dt = traj.dt #Sim time step changes best on number of steps
 
-    angle = acos_safe((trace - 1) / 2)[..., None]
-    # print(trace, angle)
+        for step in range(cfg['steps']):
+            action = traj.get_next_action().clone().detach()
+            print(action)
 
-    vec = (
-        1
-        / (2 * torch.sin(angle + 1e-5))
-        * torch.stack(
-            [
-                R[..., 2, 1] - R[..., 1, 2],
-                R[..., 0, 2] - R[..., 2, 0],
-                R[..., 1, 0] - R[..., 0, 1],
-            ],
-            dim=-1,
-        )
-    )
+            state_noise = torch.normal(mean= 0, std=torch.tensor( [0.01]*3 + [0.01]*3 + [0]*9 + [0.005]*3 ))
+            # state_noise[3] += 0.0 #crosswind
 
-    # needed to overwrite nanes from dividing by zero
-    vec[angle[..., 0] == 0] = torch.zeros(3, device=R.device)
+            # sim.advance(action) # no noise
+            sim.advance(action, state_noise) #add noise
+            measured_state = sim.get_current_state().clone().detach()
 
-    # eg TensorType["batch_size", "views", "max_objects", 3, 1]
-    rot_vec = (angle * vec)[...]
+            measurement_noise = torch.normal(mean= 0, std=torch.tensor( [0.01]*3 + [0.02]*3 + [0]*9 + [0.005]*3 ))
+            measured_state += measurement_noise
+            traj.update_state(measured_state) 
 
-    return rot_vec
+            traj.learn_update()
 
+            print("sim step", step)
+            if step % 5 !=0 or step == 0:
+                continue
+
+            quadplot = QuadPlot()
+            traj.plot(quadplot)
+            quadplot.trajectory( sim, "r" )
+            quadplot.trajectory( save, "b", show_cloud=False )
+            quadplot.show()
+
+
+        quadplot = QuadPlot()
+        traj.plot(quadplot)
+        quadplot.trajectory( sim, "r" )
+        quadplot.trajectory( save, "b", show_cloud=False )
+        quadplot.show()
+
+def OPEN_LOOP(traj):
+    sim = Simulator(traj.start_state)
+    sim.dt = traj.dt #Sim time step changes best on number of steps
+
+    for step in range(cfg['steps']):
+        action = traj.get_actions()[step,:].detach()
+        print(action)
+        sim.advance(action)
+
+    quadplot = QuadPlot()
+    traj.plot(quadplot)
+    quadplot.trajectory( sim, "r" )
+    quadplot.trajectory( save, "b", show_cloud=False )
+    quadplot.show()
 
 if __name__ == "__main__":
     main()
+'''

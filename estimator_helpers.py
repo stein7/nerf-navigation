@@ -2,12 +2,8 @@ import numpy as np
 import numpy.linalg as la
 import torch
 import torch.nn.functional as F
-import torchvision
 import json
 import time
-from matplotlib import pyplot as plt
-#from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm, trange
 from lietorch import SE3, LieGroupParameter
 from scipy.spatial.transform import Rotation as R
 import cv2

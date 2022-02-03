@@ -1,22 +1,13 @@
-import os, sys
+import os
 import numpy as np
-import imageio
-import json
-import random
 import time
 import torch
-import math
 import shutil
 import pathlib
 
-from tqdm import tqdm, trange
-
-import matplotlib.pyplot as plt
+from tqdm import trange
 
 import argparse
-import glob
-import torch.nn.functional as F
-import torchvision
 import yaml
 #from torch.utils.tensorboard import SummaryWriter
 
@@ -31,7 +22,7 @@ from nerf import (CfgNode, get_embedding_function,
                   load_blender_data, load_llff_data, models)
 
 DEBUG = False
-#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 nerf_filter = True
 
 ####################### MAIN LOOP ##########################################
@@ -75,194 +66,63 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, model_coarse, model_
 
     if DEBUG == False:
         exp_name = planner_cfg['exp_name']
-        for i in range(100):
+        renderer = Renderer(render_kwargs)
+        
+        basefolder = "paths" / pathlib.Path(planner_cfg['exp_name'])
+        if basefolder.exists():
+            print(basefolder, "already exists!")
+            if input("Clear it before continuing? [y/N]:").lower() == "y":
+                shutil.rmtree(basefolder)
+        basefolder.mkdir()
+        (basefolder / "train_poses").mkdir()
+        (basefolder / "train_graph").mkdir()
+        (basefolder / "execute_poses").mkdir()
+        (basefolder / "execute_graph").mkdir()
+        print("created", basefolder)
 
-            renderer = Renderer(render_kwargs)
-            
-            basefolder = "paths" / pathlib.Path(planner_cfg['exp_name'])
-            if basefolder.exists():
-                print(basefolder, "already exists!")
-                if input("Clear it before continuing? [y/N]:").lower() == "y":
-                    shutil.rmtree(basefolder)
-            basefolder.mkdir()
-            (basefolder / "train_poses").mkdir()
-            (basefolder / "train_graph").mkdir()
-            (basefolder / "execute_poses").mkdir()
-            (basefolder / "execute_graph").mkdir()
-            print("created", basefolder)
+        traj = System(renderer, start_state, end_state, planner_cfg)
 
-            traj = System(renderer, start_state, end_state, planner_cfg)
+        traj.basefolder = basefolder
 
-            traj.basefolder = basefolder
+        traj.a_star_init()
 
-            then = time.time()
-            traj.a_star_init()
-            now = time.time()
-            print('A* takes', now - then)
+        traj.learn_init()
 
-            traj.learn_init()
-            print('Initial Path takes', time.time() - now)
+        agent = Agent(start_state, agent_cfg)
 
-            agent = Agent(start_state, agent_cfg)
+        filter = Estimator(filter_cfg, agent, start_state)
 
-            filter = Estimator(filter_cfg, agent, start_state)
-            #inerf_dynamics = Estimator(filter_cfg, agent, start_state, filter=False)
+        true_states = start_state.cpu().detach().numpy()
 
-            true_states = start_state.cpu().detach().numpy()
+        steps = traj.get_actions().shape[0]
 
-            #steps = traj.get_actions().shape[0]
+        noise_std = extra_cfg['mpc_noise_std']
+        noise_mean = extra_cfg['mpc_noise_mean']
 
-            '''
-            agent_file = './paths/agent_data.json'
-            with open(agent_file,"r") as f:
-                meta = json.load(f)
-                true_states = meta["true_states"]
-                true_states = np.array(true_states)
+        for iter in trange(steps):
+            if iter < steps - 5:
+                action = traj.get_next_action().clone().detach()
+            else:
+                action = traj.get_actions()[iter - steps + 5, :]
 
-            true_states = true_states[1:]
-            '''
-            '''
-            action_file = './paths/estimator_data.json'
-            with open(action_file,"r") as f:
-                data_estimator = json.load(f)
-                actions = torch.tensor(data_estimator['actions'])
-            '''
+            noise = np.random.normal(noise_mean, noise_std)
+            true_pose, true_state, gt_img = agent.step(action, noise=noise)
+            true_states = np.vstack((true_states, true_state))
 
-            #assert len(true_states) == len(actions)
-            
-            #steps = actions.shape[0]
+            state_est = filter.estimate_state(gt_img, true_pose, action,
+                model_coarse=model_coarse, model_fine=model_fine,cfg=cfg, encode_position_fn=encode_position_fn,
+                encode_direction_fn=encode_direction_fn)
 
-            ###FOR EXPERIMENTS, TAKE THE FIRST 5 STEPS
-            steps = 10
+            if iter < steps - 5:
+                traj.update_state(state_est)
+                traj.learn_update(iter)
 
-            noise_std = extra_cfg['mpc_noise_std']
-            noise_mean = extra_cfg['mpc_noise_mean']
-
-            for iter in trange(steps):
-                if iter < steps - 5:
-                    action = traj.get_next_action().clone().detach()
-                else:
-                    action = traj.get_actions()[iter - steps + 5, :]
-
-                #print(traj.get_actions().shape)
-
-                #action = actions[iter]
-
-                noise = np.random.normal(noise_mean, noise_std)
-                true_pose, true_state, gt_img = agent.step(action, noise=noise)
-                true_states = np.vstack((true_states, true_state))
-
-                #true_pose, true_state, gt_img = agent.state2image(torch.tensor(true_states[iter]))
-                #plt.figure()
-                #plt.imsave('paths/true/'+ f'{iter}_gt_img.png', gt_img)
-                #plt.close()
-
-                #action = torch.tensor(actions[iter])
-
-                #measured_state = estimator.optimize(start_state, sig, gt_img, true_pose)
-
-                #measured_states.append(measured_state.cpu().detach().numpy().tolist())
-
-                torch.cuda.empty_cache()
-                then = time.time()
-                state_est = filter.estimate_state(gt_img, true_pose, action,
-                    model_coarse=model_coarse, model_fine=model_fine,cfg=cfg, encode_position_fn=encode_position_fn,
-                    encode_direction_fn=encode_direction_fn)
-                now = time.time()
-                print('Estimator takes', now-then)
-
-                #state_est_inerf_dyn = inerf_dynamics.estimate_state(gt_img, true_pose, action,
-                #    model_coarse=model_coarse, model_fine=model_fine,cfg=cfg, encode_position_fn=encode_position_fn,
-                #    encode_direction_fn=encode_direction_fn)
-
-                then = time.time()
-                if iter < steps - 5:
-                    traj.update_state(state_est)
-                    traj.learn_update(iter)
-                now = time.time()
-                print('Update planner', now - then)
-
-            #plot_trajectory(traj.get_full_states(), true_states)
-            filter.save_data(f'paths/{exp_name}/filter_data_{i}.json')
-            #inerf_dynamics.save_data(f'paths/{exp_name}/inerf_dyn_data_{i}.json')
-            agent.save_data(f'paths/{exp_name}/agent_data_{i}.json')
-            agent.command_sim_reset()
-            time.sleep(0.1)
+        agent.command_sim_reset()
+        time.sleep(0.1)
 
         return
-
     else:
         ####################################### DEBUGING ENVIRONMENT ####################################################3
-        '''
-        to8b = lambda x : (255*np.clip(x,0,1)).astype(np.uint8)
-        renderer = Renderer(hwf, K, chunk, render_kwargs_train)
-        
-        #Read in poses
-        data_path = './paths/stonehenge_every_grad_step/'
-        gt_data_path = data_path + 'agent_data.json'
-        est_data_path = data_path + 'estimator_data.json'
-        gt_img_path = data_path + 'true/'
-        with open(gt_data_path,"r") as f:
-            meta = json.load(f)
-            true_states = meta["true_states"]
-            true_states = np.array(true_states)
-
-        with open(est_data_path,"r") as f:
-            data_estimator1 = json.load(f)
-
-            pixel_losses1 = []
-            dyn_losses1 = []
-            rot_errors1 = np.empty((0, 3))
-            trans_errors1 = np.empty((0, 3))
-            state_estimates1 = data_estimator1['state_estimates']
-            covariances1 = data_estimator1['covariance']
-            states1 = np.empty((0, 18))
-            predicted_states1 = data_estimator1['predicted_states']
-            actions1 = data_estimator1['actions']
-
-            for iter, val in enumerate(data_estimator1["iterations"]):
-                pixel_losses1 += data_estimator1['pixel_losses'][f'{iter}']
-                dyn_losses1 += data_estimator1['dyn_losses'][f'{iter}']
-
-                rot_errors1 = np.vstack((rot_errors1, np.array(data_estimator1['rot_errors'][f'{iter}'])))
-                trans_errors1 = np.vstack((trans_errors1, np.array(data_estimator1['trans_errors'][f'{iter}'])))
-                states1 = np.vstack((states1, np.array(data_estimator1['states'][f'{iter}'])))
-
-        for it, state_est in enumerate(state_estimates1):
-            testsavedir = data_path + f'gif_step{it}'
-            os.makedirs(testsavedir, exist_ok=True)
-
-            obs_img = imageio.imread(gt_img_path + f'{it}_gt_img.png')
-            obs_img = obs_img[..., :3]
-            obs_img = (np.array(obs_img) / 255.).astype(np.float32)
-
-            imgs = []
-
-            with torch.no_grad():
-                for iter, state in enumerate(data_estimator1['states'][f'{it}']):
-                    if iter < 60:
-                        print('Iteration', iter, 'Image Number', it)
-
-                        state = torch.tensor(state)
-                        pose = state2pose(state)
-                        sim_pose = convert_blender_to_sim_pose(pose.cpu().detach().numpy())
-                        rgb = renderer.get_img_from_pose(torch.tensor(sim_pose))
-                        rgb = rgb.cpu().detach().numpy()
-                        rgb8 = to8b(rgb)
-                        ref = to8b(obs_img)
-
-                        print(rgb.shape)
-                        print(ref.shape)
-                        filename = os.path.join(testsavedir, str(iter)+'.png')
-                        #dst = cv2.addWeighted(rgb8, 0.7, ref, 0.3, 0)
-                        #imageio.imwrite(filename, dst)
-                        #imgs.append(dst)
-
-                        imageio.imwrite(filename, rgb8)
-                        imgs.append(rgb8)
-
-            #imageio.mimwrite(os.path.join(testsavedir, 'video.gif'), imgs, fps=8) #quality = 8 for mp4 format
-        '''
         pass
     return
 

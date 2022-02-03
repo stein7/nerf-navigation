@@ -1,13 +1,15 @@
 import os
 from nerf_core import *
 
-from torchtyping import TensorDetail, TensorType
+from torchtyping import TensorDetail, TensorType, patch_typeguard
 from typeguard import typechecked
+
+patch_typeguard()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Renderer():
-    def __init__(self, hwf, K, chunk, render_kwargs) -> None:
+    def __init__(self, hwf, K, chunk, render_kwargs, config_filename = None) -> None:
         self.hwf = hwf
         self.K = K
         self.chunk = chunk
@@ -17,6 +19,8 @@ class Renderer():
         self.network_fn = render_kwargs["network_fn"]
         self.network_fine = render_kwargs["network_fine"]
         self.network_query_fn = render_kwargs["network_query_fn"]
+
+        self.config_filename = config_filename
 
     def get_img_from_pix(self, pix: TensorType['NumPixels', 2], pose: TensorType[4, 4], HW=True) -> TensorType['NumPixels', 3]:
         "Returns colors of subsampled image at the pixels specified by the input ([[x1, y1], [x2, y2], ...])"
@@ -57,3 +61,25 @@ class Renderer():
 
         return density.reshape(-1)
 
+    @typechecked
+    def get_density(self, points: TensorType["batch":..., 3]) -> TensorType["batch":...]:
+
+        # do most computation happens on cpu but do the nerf querrying on gpu
+        original_device = points.device
+
+        out_shape = points.shape[:-1]
+        points = points.reshape(1, -1, 3)
+
+        # +z in nerf is -y in blender
+        # +y in nerf is +z in blender
+        # +x in nerf is +x in blender
+        mapping = torch.tensor([[1, 0, 0],
+                                [0, 0, 1],
+                                [0,-1, 0]], dtype=torch.float)
+
+        points = points @ mapping.T
+
+        points = points.to(device)
+        output = self.get_density_from_pt(points).to(original_device)
+
+        return output.reshape(*out_shape)

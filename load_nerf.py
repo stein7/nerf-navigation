@@ -1,11 +1,13 @@
 
 
 import torch
+import numpy as np
 
 import matplotlib.pyplot as plt
 
 from nerf_core import create_nerf
 from render_functions import Renderer
+from load_blender import load_blender_data
 
 import argparse
 
@@ -14,6 +16,7 @@ from typeguard import typechecked
 
 patch_typeguard()
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def config_parser():
 
@@ -128,64 +131,93 @@ def config_parser():
     return parser
 
 
-def get_nerf(config = 'configs/playground.txt'):
+def get_nerf(config = 'configs/playground.txt', need_render = True):
     parser = config_parser()
     args = parser.parse_args( ["--config", config] )
 
     render_kwargs_train, render_kwargs_test, start, grad_vars, optimizer = create_nerf(args)
 
-    chunk = args.chunk
     hwf = None, None, None
     K = None
-    renderer = Renderer(hwf, K, chunk, render_kwargs_train)
+    if need_render:
+        # gets camera settings needed to render the nerf but its not necessary for just getting density
+        assert args.dataset_type == 'blender', "currently only bledner dataset supported for easy loading"
+        _, _, _, hwf, _ = load_blender_data(args.datadir, args.half_res, args.testskip)
 
-    @typechecked
-    def nerf(points: TensorType["batch":..., 3]) -> TensorType["batch":...]:
-        out_shape = points.shape[:-1]
-        points = points.reshape(1, -1, 3)
+        H, W, focal = hwf
+        K = np.array([
+            [focal, 0, 0.5*W],
+            [0, focal, 0.5*H],
+            [0, 0, 1]
+            ])
 
-        # +z in nerf is -y in blender
-        # +y in nerf is +z in blender
-        # +x in nerf is +x in blender
-        mapping = torch.tensor([[1, 0, 0],
-                                [0, 0, 1],
-                                [0,-1, 0]], dtype=torch.float)
+    renderer = Renderer(hwf, K, args.chunk, render_kwargs_train, config)
+    renderer.args = args
 
-        points = points @ mapping.T
+    return renderer
 
-        output = renderer.get_density_from_pt(points)
-        return output.reshape(*out_shape)
 
-    return nerf
+def show_voxels(output, kernel_size = 2):
+    maxpool = torch.nn.MaxPool3d(kernel_size = kernel_size)
 
-def main():
-    # nerf = get_nerf('configs/playground.txt')
-    nerf = get_nerf("configs/violin.txt")
+    print(output.shape)
+    output = maxpool(output[None,None,...])[0,0,...]
+    print(output.shape)
 
-    side = 20
-    linspace = torch.linspace(-1,1, side)
+    ax = plt.figure().add_subplot(projection='3d')
+    ax.voxels(output > .33,  edgecolor='k') #0.33 for violin, playground
+    plt.show()
 
-    # side, side, side, 3
-    coods = torch.stack( torch.meshgrid( linspace, linspace, linspace ), dim=-1)
-                
-    output = nerf(coods)
+def show_projection(coods, output, dim="y", show_coords=True, max_project = False):
 
-    into_page_dim, x_dim, y_dim  = 0,  1, 2
-    # into_page_dim, x_dim, y_dim  = 1,  0, 2
-    # into_page_dim, x_dim, y_dim  = 2,  0, 1
+    if dim == "x":
+        into_page_dim, x_dim, y_dim  = 0,  1, 2
+    elif dim == "y":
+        into_page_dim, x_dim, y_dim  = 1,  0, 2
+    elif dim == "z":
+        into_page_dim, x_dim, y_dim  = 2,  0, 1
+    else:
+        raise ValueError
 
-    # im,_ = torch.max( output, dim=into_page_dim)
-    im = torch.mean( output, dim=into_page_dim)
+    if max_project:
+        im,_ = torch.max( output, dim=into_page_dim)
+    else:
+        im = torch.mean( output, dim=into_page_dim)
+
     x_image = torch.mean( coods, dim=into_page_dim)[...,x_dim]
     y_image = torch.mean( coods, dim=into_page_dim)[...,y_dim]
 
-    print(im.shape)
-    print("happy")
-    # exit()
-
-    # plt.pcolormesh(x_image, y_image, im)
-    plt.imshow(im)
+    if show_coords:
+        plt.pcolormesh(x_image, y_image, im)
+    else:
+        plt.imshow(im)
     plt.show()
+
+def main():
+    # nerf = get_nerf('configs/playground.txt')
+    # nerf = get_nerf("configs/violin.txt")
+    # nerf = get_nerf("configs/stonehenge.txt")
+    nerf = get_nerf("configs/church.txt")
+
+    side = 100
+    # linspace = torch.linspace(-1,1, side)
+    # coods = torch.stack( torch.meshgrid( linspace, linspace, linspace ), dim=-1)
+
+    x_linspace = torch.linspace(-2,-1, side)
+    y_linspace = torch.linspace(-1.2,-0.2, side)
+    # y_linspace = torch.linspace(-0.5,0.5, side)
+    z_linspace = torch.linspace(0.4,1.4, side)
+    coods = torch.stack( torch.meshgrid( x_linspace, y_linspace, z_linspace ), dim=-1)
+
+    # side, side, side     :   side, side, side, 3
+    output = nerf.get_density(coods)
+
+    # show_voxels(output)
+
+    show_projection(coods, output, dim="z", show_coords=True, max_project = False)
+
+
+
 
 
 if __name__ == "__main__":

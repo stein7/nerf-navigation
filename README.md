@@ -8,7 +8,7 @@
  [Adam Caccavale](https://msl.stanford.edu/people/adamcaccavale)<sup></sup>,
  [Rachel Gardner](https://rachel-gardner.com/)<sup></sup>,
  [Preston Culbertson ](https://web.stanford.edu/~pculbert/)<sup></sup>,
- [Jeannette Bohg](https://web.stanford.edu/~bohg/)<sup></sup> 
+ [Jeannette Bohg](https://web.stanford.edu/~bohg/)<sup></sup>, 
  [Mac Schwager](https://web.stanford.edu/~schwager/)<sup></sup> <br>
   \*denotes equal contribution
 

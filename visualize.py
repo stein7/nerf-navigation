@@ -4,10 +4,6 @@ import sys, os
 
 from mathutils import Matrix, Vector
 
-import math
-
-import numpy as np
-
 import json
 
 import time

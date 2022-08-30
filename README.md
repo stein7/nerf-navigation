@@ -15,7 +15,7 @@ For more infomation on the paper see the [paper page](https://mikh3x4.github.io/
 
 [NeRF](http://www.matthewtancik.com/nerf) (Neural Radiance Fields) is a method that achieves state-of-the-art results for synthesizing novel views of complex scenes.
 
-[Instant-NGP](https://github.com/NVlabs/instant-ngp) is an extension that grants enormous performance boosts in inference and training. This repository for navigation is built off of the PyTorch version of NGP [link here](https://github.com/ashawkey/torch-ngp).
+[Instant-NGP](https://github.com/NVlabs/instant-ngp) is an extension that grants enormous performance boosts in inference and training. This repository for navigation is built off of the PyTorch version of NGP.
 
 ## Installation
 It is recommended to go to [torch-ngp](https://github.com/ashawkey/torch-ngp) page and install its dependencies there, as our code is an application of their code. If you can begin training without any issues in a conda environment, then you should be able to run our code just fine. This repo includes not only the navigation code, but also the code necessary to train the models (i.e. the repository is self-sufficient). As our dependencies are exactly the same as theirs, you can create a virtual environment straight from our repository by:

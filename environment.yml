@@ -17,6 +17,7 @@ dependencies:
   - rich
   - packaging
   - scipy
+  - torchquad
   - pip:
     - imageio
     - lpips

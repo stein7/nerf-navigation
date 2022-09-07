@@ -6,13 +6,13 @@ import time
 import cv2
 import matplotlib.pyplot as plt
 from nav.quad_helpers import vec_to_rot_matrix
+from lietorch import SO3
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def mahalanobis(u, v, cov):
     delta = u - v
-    m = torch.dot(delta, torch.matmul(torch.inverse(cov), delta))
-    return m
+    return delta @ torch.inverse(cov) @ delta
 
 rot_x = lambda phi: torch.tensor([
         [1., 0., 0.],
@@ -40,20 +40,21 @@ def nerf_matrix_to_ngp_torch(pose, trans):
 
 def find_POI(img_rgb, DEBUG=False): # img - RGB image in range 0...255
     img = np.copy(img_rgb)
-    #img_gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    img_gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     
-    #sift = cv2.SIFT_create()
-    #keypoints = sift.detect(img, None)
+    sift = cv2.SIFT_create()
+    keypoints = sift.detect(img, None)
 
     # Initiate ORB detector
-    orb = cv2.ORB_create()
+    #orb = cv2.ORB_create()
     # find the keypoints with ORB
-    keypoints2 = orb.detect(img,None)
+    #keypoints2 = orb.detect(img_gray,None)
 
     #if DEBUG:
-    #    img = cv2.drawKeypoints(img_gray, keypoints, img)
+    img = cv2.drawKeypoints(img_gray, keypoints, img)
+    plt.imshow(img)
     #keypoints = keypoints + keypoints2
-    keypoints = keypoints2
+    #keypoints = keypoints2
 
     xy = [keypoint.pt for keypoint in keypoints]
     xy = np.array(xy).astype(int)
@@ -170,6 +171,7 @@ class Estimator():
         # find points of interest of the observed image
         POI = find_POI(obs_img_noised, False)  # xy pixel coordinates of points of interest (N x 2)
 
+        print(f'Found {POI.shape[0]} features')
         ### IF FEATURE DETECTION CANT FIND POINTS, RETURN INITIAL
         if len(POI.shape) == 1:
             self.pixel_losses[f'{self.iteration}'] = []
@@ -181,11 +183,11 @@ class Estimator():
         obs_img_noised = torch.tensor(obs_img_noised).cuda()
 
         # create meshgrid from the observed image
-        coords = np.asarray(np.stack(np.meshgrid(np.linspace(0, W_obs - 1, W_obs), np.linspace(0, H_obs - 1, H_obs)), -1), dtype=int)
+        coords = np.asarray(np.stack(np.meshgrid(np.linspace(0, H_obs - 1, H_obs), np.linspace(0, W_obs - 1, W_obs)), -1), dtype=int)
 
         # create sampling mask for interest region sampling strategy
         interest_regions = np.zeros((H_obs, W_obs, ), dtype=np.uint8)
-        interest_regions[POI[:,1], POI[:,0]] = 1
+        interest_regions[POI[:,0], POI[:,1]] = 1
         I = self.dil_iter
         interest_regions = cv2.dilate(interest_regions, np.ones((self.kernel_size, self.kernel_size), np.uint8), iterations=I)
         interest_regions = np.array(interest_regions, dtype=bool)
@@ -214,7 +216,7 @@ class Estimator():
         states = []
 
         for k in range(self.iter):
-
+            optimizer.zero_grad()
             rand_inds = np.random.choice(interest_regions.shape[0], size=self.batch_size, replace=False)
             batch = interest_regions[rand_inds]
 
@@ -228,7 +230,6 @@ class Estimator():
 
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
             #new_lrate = self.lrate * (0.8 ** ((k + 1) / 100))
             #new_lrate = extra_arg_dict['lrate'] * np.exp(-(k)/1000)
             #for param_group in optimizer.param_groups:
@@ -238,6 +239,7 @@ class Estimator():
             if obs_img_pose is not None and ((k + 1) % 20 == 0 or k == 0):
                 print('Step: ', k)
                 print('Loss: ', loss)
+                print('State', optimized_state)
 
                 with torch.no_grad():
                     pose = torch.eye(4)
@@ -250,8 +252,15 @@ class Estimator():
                         rgb = self.render_from_pose(pose)
                         rgb = torch.squeeze(rgb).cpu().detach().numpy()
                         f, axarr = plt.subplots(2)
-                        axarr[0].imshow(rgb.reshape((obs_img_noised.shape[0], obs_img_noised.shape[1], -1)))
-                        axarr[1].imshow(obs_img_noised.cpu().numpy())
+                        
+                        #Add keypoint visualization
+                        render = rgb.reshape((obs_img_noised.shape[0], obs_img_noised.shape[1], -1))
+                        gt_img = obs_img_noised.cpu().numpy()
+                        render[batch[:, 0], batch[:, 1]] = np.array([0., 1., 0.])
+                        gt_img[batch[:, 0], batch[:, 1]] = np.array([0., 1., 0.])
+
+                        axarr[0].imshow(render)
+                        axarr[1].imshow(gt_img)
                         plt.show()
 
         print("Done with main relative_pose_estimation loop")
@@ -266,17 +275,17 @@ class Estimator():
         
     def measurement_fn(self, state, start_state, sig, target, batch):
         #Process loss. 
-        #loss_dyn = mahalanobis(state, start_state, sig)
-        loss_dyn = 0.
+        loss_dyn = mahalanobis(state, start_state, sig)
+        #loss_dyn = 0.
 
         H, W, _ = target.shape
 
         #Assuming the camera frustrum is oriented in the body y-axis. The camera frustrum is in the -z axis
         # in its own frame, so we need a 90 degree rotation about the x-axis to transform 
         #TODO: Check this, doesn't look right. Should be camera to world
-        rot = rot_x(torch.tensor(np.pi/2)) @ vec_to_rot_matrix(state[6:9])
+        R = SO3.exp(state[6:9])
+        rot = rot_x(torch.tensor(np.pi/2)) @ R.matrix()[:3, :3]
 
-        #pose = poseC2W
         pose, trans = nerf_matrix_to_ngp_torch(rot, state[:3])
 
         new_pose = torch.eye(4)

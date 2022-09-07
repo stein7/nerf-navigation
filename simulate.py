@@ -225,12 +225,12 @@ if __name__ == "__main__":
     ### ESTIMATOR CONFIGS
     dil_iter = 3
     kernel_size = 5
-    batch_size = 512
-    lrate_relative_pose_estimation = 0.001
+    batch_size = 1024
+    lrate_relative_pose_estimation = 1e-3
     N_iter = 300
 
-    sig0 = 0.1*np.eye(12)
-    Q = 1e-2*np.eye(12)
+    sig0 = 1*np.eye(12)
+    Q = 1*np.eye(12)
     #Remark: We don't have a measurement noise covariance, or rather we just set it to identity since it's not clear
     #what a covariance on a random batch of pixels should be. 
 
@@ -244,6 +244,13 @@ if __name__ == "__main__":
     # X, Y, Z
     start_pos = [0.39, -0.67, 0.2]
     end_pos = [-0.4, 0.55, 0.16]
+    
+    # start_pos = [-0.09999999999999926,
+    #             -0.8000000000010297,
+    #             0.0999999999999695]
+    # end_pos = [0.10000000000000231,
+    #             0.4999999999996554,
+    #             0.09999999999986946]
 
     # Rotation vector
     start_R = [0.0, 0.0, 0.]

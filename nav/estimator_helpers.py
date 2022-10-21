@@ -6,7 +6,6 @@ import time
 import cv2
 import matplotlib.pyplot as plt
 from nav.quad_helpers import vec_to_rot_matrix
-from lietorch import SO3
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -283,7 +282,7 @@ class Estimator():
         #Assuming the camera frustrum is oriented in the body y-axis. The camera frustrum is in the -z axis
         # in its own frame, so we need a 90 degree rotation about the x-axis to transform 
         #TODO: Check this, doesn't look right. Should be camera to world
-        R = SO3.exp(state[6:9])
+        R = vec_to_rot_matrix(state[6:9])
         rot = rot_x(torch.tensor(np.pi/2)) @ R.matrix()[:3, :3]
 
         pose, trans = nerf_matrix_to_ngp_torch(rot, state[:3])

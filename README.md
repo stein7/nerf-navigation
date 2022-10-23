@@ -8,7 +8,7 @@ NeRFs have recently emerged as a powerful paradigm for the representation of nat
 
 ## Code Structure
 
-For more infomation on the paper see the [paper page](https://mikh3x4.github.io/nerf-navigation/). 
+For more infomation on the paper see the [paper page](https://mikh3x4.github.io/nerf-navigation/).
 
 # torch-NGP
 
@@ -18,7 +18,9 @@ For more infomation on the paper see the [paper page](https://mikh3x4.github.io/
 [Instant-NGP](https://github.com/NVlabs/instant-ngp) is an extension that grants enormous performance boosts in inference and training. This repository for navigation is built off of the PyTorch version of NGP.
 
 ## Installation
-It is recommended to go to [torch-ngp](https://github.com/ashawkey/torch-ngp) page and install its dependencies there, as our code is an application of their code. If you can begin training without any issues in a conda environment, then you should be able to run our code just fine. This repo includes not only the navigation code, but also the code necessary to train the models (i.e. the repository is self-sufficient). As our dependencies are exactly the same as theirs, you can create a virtual environment straight from our repository by:
+It is recommended to go to [torch-ngp](https://github.com/ashawkey/torch-ngp) page and install its dependencies there, as our code is an application of their code. If you can begin training without any issues in a conda environment, then you should be able to run our code just fine.
+
+This repo includes not only the navigation code, but also the code necessary to train the models (i.e. the repository is self-sufficient). As our dependencies are exactly the same as [nerf-pytorch](https://github.com/yenchenlin/nerf-pytorch), you can create a virtual environment straight from the repository by:
 
 ```
 git clone https://github.com/yenchenlin/nerf-pytorch.git
@@ -30,14 +32,15 @@ pip install -r requirements.txt
 
 ### Training
 
-Run NeRF training. Make sure your training data (from Blender) is located in ```data/nerf_synthetic/model_name```. This 
-format should be identical to most NeRF repositories. The command to train on Blender scenes is: 
+Run NeRF training. Make sure your training data (from Blender) is located in ```nerf-navigation/data/nerf_synthetic/model_name```. The `data` folder will not be present when you clone this repository.
+You will have to create it yourself. This format should be identical to most NeRF repositories. The command to train on Blender scenes is:
 
-```python main_nerf.py data/nerf_synthetic/model_name --workspace model_name_nerf -O --bound x.x --scale 1.0 --dt_gamma 0```
+```python main_nerf.py data/nerf_synthetic/model_name --workspace model_name_nerf -O --bound x.x --scale 1.0 --dt_gamma 0
+```
 
-It is imperative you set ```scale``` to 1.0, so that torch-NGP does not resize the scene dimensions and cause a mismatch between the 
-scale of the model dynamics and that of the NeRF. Set ```bound``` to be the bounding box of your Blender mesh. For example, for 
-the Stonehenge scene, we used ```--bound 2.0```. For the Stonehenge scene data and model, please see the pretrained models section below. 
+It is imperative you set ```scale``` to 1.0, so that torch-NGP does not resize the scene dimensions and cause a mismatch between the
+scale of the model dynamics and that of the NeRF. Set ```bound``` to be the bounding box of your Blender mesh. For example, for
+the Stonehenge scene, we used ```--bound 2.0```. For the Stonehenge scene data and model, please see the pretrained models section below.
 
 ### Validation
 
@@ -45,26 +48,30 @@ Once training has finished or you've achieved satisfactory results, the checkpoi
 
 ### Setting up Blender
 
-Make sure to download the latest version of Blender. We will use Blender as our simulation environment. 
-First, open a new terminal in the folder where Blender is located and open blender (i.e. ```./blender``` in the terminal). This 
-allows the user to break out of hanging scripts through the terminal. Once Blender is open, navigate to the Scripting tab, 
+Make sure to download the latest version of Blender. We will use Blender as our simulation environment.
+First, open a new terminal in the folder where Blender is located and open blender (i.e. ```./blender``` in the terminal). This
+allows the user to break out of hanging scripts through the terminal. Once Blender is open, navigate to the Scripting tab,
 and open ```visualize.py``` if it is not already in the tab.
 
-Note: Make sure there is a Camera object in the scene. 
+Note: Make sure there is a Camera object in the scene.
 
 ### Running
 
-Create a ```sim_img_cache``` folder if it is not already there. This is where ```visualize.py``` will read in poses of the robot 
+Create a ```sim_img_cache``` folder right under `nerf-navigation` if it is not already there. This is where ```visualize.py``` will read in poses of the robot
 and return an observation image that ```simulate.py``` will perform pose estimation on.
 
 Run ```visualize.py``` in Blender by pressing the run button.
 
 Run the planning and estimation loop (in a terminal different than the one ```visualize.py``` is on) using the command:
 
-```python simulate.py data/nerf_synthetic/model_name --workspace model_name_nerf -O --bound x.x --scale 1.0 --dt_gamma 0```
+```python simulate.py data/nerf_synthetic/model_name --workspace model_name_nerf -O --bound x.x --scale 1.0 --dt_gamma 0
+```
 
 It is imperative that the parameters you pass in are the same as those used to train the NeRF (i.e. ```--bound```, ```--scale```, ```--dt_gamma```).
-All tunable configs (e.g. noise, initial and final conditions) are in ```simulate.py```. 
+All tunable configs (e.g. noise, initial and final conditions) are in ```simulate.py```.
+
+> [!NOTE]
+> Make sure your start and goal poses are not in occupied zones. If they are, you can set them (here)[https://github.com/mikh3x4/nerf-navigation/blob/1c207d6fd247b8facc5bbf63392a1e6bcc669b12/simulate.py#L245-L246] in `simulate.py`.
 
 ---
 

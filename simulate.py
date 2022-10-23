@@ -30,6 +30,8 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
     end_state = planner_cfg['end_state']
     
     # Creates a workspace to hold all the trajectory data
+    if not os.path.exists("paths"):
+        os.mkdir("paths")
     basefolder = "paths" / pathlib.Path(planner_cfg['exp_name'])
     if basefolder.exists():
         print(basefolder, "already exists!")

@@ -1,45 +1,12 @@
 import torch
-import sys
 from torch._C import device
 import numpy as np
-
 import json
 
-#from torchtyping import TensorType, patch_typeguard
-#from typeguard import typechecked
-
-#patch_typeguard()
-
-#from load_nerf import get_nerf
-
-#from quad_helpers import Simulator, QuadPlot
-from .quad_helpers import rot_matrix_to_vec, next_rotation
-from .quad_helpers import astar
+from .math_utils import rot_matrix_to_vec
+from .quad_helpers import astar, next_rotation
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# # hard coded "nerf" for testing. see below to import real nerf
-# def get_manual_nerf(name):
-#     if name =='empty':
-#         class FakeRenderer:
-#             @typechecked
-#             def get_density(self, points: TensorType["batch":..., 3]) -> TensorType["batch":...]:
-#                 return torch.zeros_like( points[...,0] )
-#         return FakeRenderer()#
-
-#     if name =='cylinder':
-#         class FakeRenderer:
-#             @typechecked
-#             def get_density(self, points: TensorType["batch":..., 3]) -> TensorType["batch":...]:
-#                 x = points[..., 0]
-#                 y = points[..., 1] - 1
-
-#                 return torch.sigmoid( (2 -(x**2 + y**2)) * 8 )
-#         return FakeRenderer()
-
-#     raise ValueError
-
-
 
 class Planner:
     def __init__(self, start_state, end_state, cfg, density_fn):
@@ -56,6 +23,8 @@ class Planner:
         self.mass               = cfg['mass']
         self.J                  = cfg['I']
         self.g                  = torch.tensor([0., 0., -cfg['g']])
+        self.body_extent        = cfg['body']
+        self.body_nbins         = cfg['nbins']
 
         self.CHURCH = False
 
@@ -70,12 +39,12 @@ class Planner:
                     slider  * self.full_to_reduced_state(end_state)
 
         self.states = states.clone().detach().requires_grad_(True)
-        self.initial_accel = torch.tensor([10.0,10.0]).requires_grad_(True)
+        self.initial_accel = torch.tensor([cfg['g'], cfg['g']]).requires_grad_(True)
 
         #PARAM this sets the shape of the robot body point cloud
-        body = torch.stack( torch.meshgrid( torch.linspace(-0.05, 0.05, 10),
-                                            torch.linspace(-0.05, 0.05, 10),
-                                            torch.linspace(-0.02, 0.02,  5)), dim=-1)
+        body = torch.stack( torch.meshgrid( torch.linspace(self.body_extent[0, 0], self.body_extent[0, 1], self.body_nbins[0]),
+                                            torch.linspace(self.body_extent[1, 0], self.body_extent[1, 1], self.body_nbins[1]),
+                                            torch.linspace(self.body_extent[2, 0], self.body_extent[2, 1], self.body_nbins[2])), dim=-1)
         self.robot_body = body.reshape(-1, 3)
 
         if self.CHURCH:
@@ -299,11 +268,10 @@ class Planner:
                 save_step = 50
                 if it%save_step == 0:
                     if hasattr(self, "basefolder"):
-                        self.save_poses(self.basefolder / "train_poses" / (str(it//save_step)+".json"))
-                        self.save_graph(self.basefolder / "train_graph" / (str(it//save_step)+".json"))
+                        self.save_poses(self.basefolder / "init_poses" / (str(it//save_step)+".json"))
+                        self.save_costs(self.basefolder / "init_costs" / (str(it//save_step)+".json"))
                     else:
-                        print("WANRING: data not saved!")
-
+                        print("Warning: data not saved!")
 
         except KeyboardInterrupt:
             print("finishing early")
@@ -326,10 +294,10 @@ class Planner:
             save_step = 50
             if it%save_step == 0:
                 if hasattr(self, "basefolder"):
-                    self.save_poses(self.basefolder / "execute_poses" / (str(it//save_step)+ f"_iter{iteration}.json"))
-                    self.save_graph(self.basefolder / "execute_graph" / (str(it//save_step)+ f"_iter{iteration}.json"))
+                    self.save_poses(self.basefolder / "replan_poses" / (str(it//save_step)+ f"_time{iteration}.json"))
+                    self.save_costs(self.basefolder / "replan_costs" / (str(it//save_step)+ f"_time{iteration}.json"))
                 else:
-                    print("WANRING: data not saved!")
+                    print("Warning: data not saved!")
 
     def update_state(self, measured_state):
         pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
@@ -386,9 +354,9 @@ class Planner:
 
                 poses.append(pose.tolist())
             pose_dict["poses"] = poses
-            json.dump(pose_dict, f)
+            json.dump(pose_dict, f, indent=4)
 
-    def save_graph(self, filename):
+    def save_costs(self, filename):
         positions, vel, _, rot_matrix, omega, _, actions = self.calc_everything()
         total_cost, colision_loss  = self.get_state_cost()
 
@@ -398,7 +366,7 @@ class Planner:
                   "total_cost": total_cost.cpu().detach().numpy().tolist()}
 
         with open(filename,"w+") as f:
-            json.dump( output,  f)
+            json.dump( output,  f, indent=4)
 
     def save_progress(self, filename):
         if hasattr(self.renderer, "config_filename"):

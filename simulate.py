@@ -1,22 +1,16 @@
 import os, sys
 import numpy as np
-import time
 import torch
 import shutil
 import pathlib
-
+import subprocess
 from tqdm import trange
-
 import argparse
-#from torch.utils.tensorboard import SummaryWriter
-
-import matplotlib.pyplot as plt
-
 from nerf.utils import *
 from nerf.provider import NeRFDataset
 
 # Import Helper Classes
-from nav import (Estimator, Agent, Planner, vec_to_rot_matrix, rot_matrix_to_vec, density_to_pc)
+from nav import (Estimator, Agent, Planner, vec_to_rot_matrix, rot_matrix_to_vec)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -30,18 +24,17 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
     end_state = planner_cfg['end_state']
     
     # Creates a workspace to hold all the trajectory data
-    if not os.path.exists("paths"):
-        os.mkdir("paths")
     basefolder = "paths" / pathlib.Path(planner_cfg['exp_name'])
     if basefolder.exists():
         print(basefolder, "already exists!")
         if input("Clear it before continuing? [y/N]:").lower() == "y":
             shutil.rmtree(basefolder)
     basefolder.mkdir()
-    (basefolder / "train_poses").mkdir()
-    (basefolder / "train_graph").mkdir()
-    (basefolder / "execute_poses").mkdir()
-    (basefolder / "execute_graph").mkdir()
+    (basefolder / "init_poses").mkdir()
+    (basefolder / "init_costs").mkdir()
+    (basefolder / "replan_poses").mkdir()
+    (basefolder / "replan_costs").mkdir()
+    (basefolder / "estimator_data").mkdir()
     print("created", basefolder)
   
     # Initialize Planner
@@ -80,11 +73,13 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
     #Change start state from 18-vector (with rotation as a rotation matrix) to 12 vector (with rotation as a rotation vector)
     start_state = torch.cat([start_state[:6], rot_matrix_to_vec(start_state[6:15].reshape((3, 3))), start_state[15:]], dim=-1).cuda()
 
+    agent_cfg['x0'] = start_state
     # Initialize the agent. Evolves the agent with time and interacts with the simulator (Blender) to get observations.
-    agent = Agent(start_state, agent_cfg)
+    agent = Agent(agent_cfg, camera_cfg, blender_cfg)
 
     # State estimator. Takes the observations from Agent class and performs filtering to get a state estimate (12-vector)
     filter = Estimator(filter_cfg, agent, start_state, get_rays_fn=get_rays_fn, render_fn=render_fn)
+    filter.basefolder = basefolder
 
     true_states = start_state.cpu().detach().numpy()
 
@@ -93,40 +88,39 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
     noise_std = extra_cfg['mpc_noise_std']
     noise_mean = extra_cfg['mpc_noise_mean']
 
-    for iter in trange(steps):
-        # In MPC style, take the next action recommended from the planner
-        if iter < steps - 5:
-            action = traj.get_next_action().clone().detach()
-        else:
-            action = traj.get_actions()[iter - steps + 5, :]
+    try:
+        for iter in trange(steps):
+            # In MPC style, take the next action recommended from the planner
+            if iter < steps - 5:
+                action = traj.get_next_action().clone().detach()
+            else:
+                action = traj.get_actions()[iter - steps + 5, :]
 
-        noise = torch.normal(noise_mean, noise_std)
+            noise = torch.normal(noise_mean, noise_std)
 
-        # Have the agent perform the recommended action, subject to noise. true_pose, true_state are here
-        # for simulation purposes in order to benchmark performance. They are the true state of the agent
-        # subjected to noise. gt_img is the observation.
-        true_pose, true_state, gt_img = agent.step(action, noise=noise)
-        true_states = np.vstack((true_states, true_state))
+            # Have the agent perform the recommended action, subject to noise. true_pose, true_state are here
+            # for simulation purposes in order to benchmark performance. They are the true state of the agent
+            # subjected to noise. gt_img is the observation.
+            true_pose, true_state, gt_img = agent.step(action, noise=noise)
+            true_states = np.vstack((true_states, true_state))
 
-        # Given the planner's recommended action and the observation, perform state estimation. true_pose
-        # is here only to benchmark performance. 
-        state_est = filter.estimate_state(gt_img, true_pose, action)
+            # Given the planner's recommended action and the observation, perform state estimation. true_pose
+            # is here only to benchmark performance. 
+            state_est = filter.estimate_state(gt_img, true_pose, action)
 
-        if iter < steps - 5:
-            #state estimate is 12-vector. Transform to 18-vector
-            state_est = torch.cat([state_est[:6], vec_to_rot_matrix(state_est[6:9]).reshape(-1), state_est[9:]], dim=-1)
+            if iter < steps - 5:
+                #state estimate is 12-vector. Transform to 18-vector
+                state_est = torch.cat([state_est[:6], vec_to_rot_matrix(state_est[6:9]).reshape(-1), state_est[9:]], dim=-1)
 
-            # Let the planner know where the agent is estimated to be
-            traj.update_state(state_est)
+                # Let the planner know where the agent is estimated to be
+                traj.update_state(state_est)
 
-            # Replan from the state estimate
-            traj.learn_update(iter)
+                # Replan from the state estimate
+                traj.learn_update(iter)
+        return
 
-    # Reset the simulation once done.
-    agent.command_sim_reset()
-    time.sleep(0.1)
-
-    return
+    except KeyboardInterrupt:
+        return
 
 ####################### END OF MAIN LOOP ##########################################
 
@@ -225,27 +219,43 @@ if __name__ == "__main__":
     ### ----- NERF-NAV PARAMETERS ----- #
 
     ### ESTIMATOR CONFIGS
-    dil_iter = 3
-    kernel_size = 5
-    batch_size = 1024
-    lrate_relative_pose_estimation = 1e-3
-    N_iter = 300
+    dil_iter = 3        # Number of times to dilate mask around features in observed image
+    kernel_size = 5     # Kernel of dilation 
+    batch_size = 1024   # How many rays to sample in dilated mask
+    lrate_relative_pose_estimation = 1e-3       # State estimator learning rate
+    N_iter = 300        # Number of times to perform gradient descent in state estimator
 
-    sig0 = 1*np.eye(12)
-    Q = 1*np.eye(12)
     #Remark: We don't have a measurement noise covariance, or rather we just set it to identity since it's not clear
     #what a covariance on a random batch of pixels should be. 
+    sig0 = 1*np.eye(12)     # Initial state covariance
+    Q = 1*np.eye(12)        # Process noise covariance
 
     ### AGENT CONFIGS
-    mass = 1.
-    g = 10.
-    I = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-    path = 'sim_img_cache/'
+
+    # Extent of the agent body, centered at origin.
+    # low_x, high_x
+    # low_y, high_y
+    # low_z, high_z
+    body_lims = np.array([
+        [-0.05, 0.05],
+        [-0.05, 0.05],
+        [-0.02, 0.02]
+    ])
+
+    # Discretizations of sample points in x,y,z direction
+    body_nbins = [10, 10, 5]
+
+    mass = 1.           # mass of drone
+    g = 10.             # gravitational constant
+    I = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]   # inertia tensor
+    path = 'sim_img_cache/'     # Directory where pose and images are exchanged
+    blend_file = 'stonehenge.blend'     # Blend file of your scene
 
     ### PLANNER CONFIGS
     # X, Y, Z
-    start_pos = [0.39, -0.67, 0.2]
-    end_pos = [-0.4, 0.55, 0.16]
+    #STONEHENGE
+    start_pos = [0.39, -0.67, 0.2]      # Starting position [x,y,z]
+    end_pos = [-0.4, 0.55, 0.16]        # Goal position
     
     # start_pos = [-0.09999999999999926,
     #             -0.8000000000010297,
@@ -255,24 +265,24 @@ if __name__ == "__main__":
     #             0.09999999999986946]
 
     # Rotation vector
-    start_R = [0.0, 0.0, 0.]
-    end_R = [0.,0.0, 0.]
+    start_R = [0., 0., 0.0]     # Starting orientation (Euler angles)
+    end_R = [0., 0., 0.0]       # Goal orientation
 
     # Angular and linear velocities
-    init_rates = torch.zeros(3)
+    init_rates = torch.zeros(3) # All rates
 
-    T_final = 2.
-    steps = 20
+    T_final = 2.                # Final time of simulation
+    steps = 20                  # Number of time steps to run simulation
 
-    planner_lr = 0.001
-    epochs_init = 2500
+    planner_lr = 0.001          # Learning rate when learning a plan
+    epochs_init = 2500          # Num. Gradient descent steps to perform during initial plan
     fade_out_epoch = 0
     fade_out_sharpness = 10
-    epochs_update = 250
+    epochs_update = 250         # Num. grad descent steps to perform when replanning
 
     ### MPC CONFIGS
-    mpc_noise_mean = [0., 0., 0., 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    mpc_noise_std = [2e-2, 2e-2, 2e-2, 1e-2, 1e-2, 1e-2, 2e-2, 2e-2, 2e-2, 1e-2, 1e-2, 1e-2]
+    mpc_noise_mean = [0., 0., 0., 0, 0, 0, 0, 0, 0, 0, 0, 0]    # Mean of process noise [positions, lin. vel, angles, ang. rates]
+    mpc_noise_std = [2e-2, 2e-2, 2e-2, 1e-2, 1e-2, 1e-2, 2e-2, 2e-2, 2e-2, 1e-2, 1e-2, 1e-2]    # standard dev. of noise
 
     ### Integration
     start_pos = torch.tensor(start_pos).float()
@@ -282,46 +292,66 @@ if __name__ == "__main__":
     start_R = vec_to_rot_matrix( torch.tensor(start_R))
     end_R = vec_to_rot_matrix(torch.tensor(end_R))
 
+    # Convert 12 dimensional to 18 dimensional vec
     start_state = torch.cat( [start_pos, init_rates, start_R.reshape(-1), init_rates], dim=0 )
     end_state   = torch.cat( [end_pos,   init_rates, end_R.reshape(-1), init_rates], dim=0 )
 
     #Store configs in dictionary
-    planner_cfg = {"T_final": T_final,
-            "steps": steps,
-            "lr": planner_lr,
-            "epochs_init": epochs_init,
-            "fade_out_epoch": fade_out_epoch,
-            "fade_out_sharpness": fade_out_sharpness,
-            "epochs_update": epochs_update,
-            'start_state': start_state.to(device),
-            'end_state': end_state.to(device),
-            'exp_name': opt.workspace,
-            'I': torch.tensor(I).float().to(device),
-            'g': g,
-            'mass': mass
-            }
+    planner_cfg = {
+    "T_final": T_final,
+    "steps": steps,
+    "lr": planner_lr,
+    "epochs_init": epochs_init,
+    "fade_out_epoch": fade_out_epoch,
+    "fade_out_sharpness": fade_out_sharpness,
+    "epochs_update": epochs_update,
+    'start_state': start_state.to(device),
+    'end_state': end_state.to(device),
+    'exp_name': opt.workspace,                  # Experiment name
+    'I': torch.tensor(I).float().to(device),
+    'g': g,
+    'mass': mass,
+    'body': body_lims,
+    'nbins': body_nbins
+    }
 
-    agent_cfg = {'dt': T_final/steps,
-                'mass': mass,
-                'g': g,
-                'I': torch.tensor(I).float().to(device),
-                'half_res': False,
-                'white_bg': True,
-                'path': path}
+    agent_cfg = {
+    'dt': T_final/steps,        # Duration of each time step
+    'mass': mass,
+    'g': g,
+    'I': torch.tensor(I).float().to(device)
+    }
+
+    camera_cfg = {
+    'half_res': False,      # Half resolution
+    'white_bg': True,       # White background
+    'path': path,           # Directory where pose and images are stored
+    'res_x': 800,           # x resolution (BEFORE HALF RES IS APPLIED!)
+    'res_y': 800,           # y resolution
+    'trans': True,          # Boolean    (Transparency)
+    'mode': 'RGBA'          # Can be RGB-Alpha, or just RGB
+    }
+
+    blender_cfg = {
+    'blend_path': blend_file,
+    'script_path': 'viz_func.py'        # Path to Blender script
+    }
 
     filter_cfg = {
-        'dil_iter': dil_iter,
-        'batch_size': batch_size,
-        'kernel_size': kernel_size,
-        'lrate': lrate_relative_pose_estimation,
-        'N_iter': N_iter,
-        'sig0': torch.tensor(sig0).float().to(device),
-        'Q': torch.tensor(Q).float().to(device),
+    'dil_iter': dil_iter,
+    'batch_size': batch_size,
+    'kernel_size': kernel_size,
+    'lrate': lrate_relative_pose_estimation,
+    'N_iter': N_iter,
+    'sig0': torch.tensor(sig0).float().to(device),
+    'Q': torch.tensor(Q).float().to(device),
+    'render_viz': True,
+    'show_rate': [20, 100]
     }
 
     extra_cfg = {
-        'mpc_noise_std': torch.tensor(mpc_noise_std),
-        'mpc_noise_mean': torch.tensor(mpc_noise_mean)
+    'mpc_noise_std': torch.tensor(mpc_noise_std),
+    'mpc_noise_mean': torch.tensor(mpc_noise_mean)
     }
 
     # Defining crucial functions related to querying the NeRF. 
@@ -329,11 +359,20 @@ if __name__ == "__main__":
     # Querying the density (for the planner)
     #In NeRF training, the camera is pointed along positive z axis, whereas Blender assumes -z, hence we need to rotate the pose
     rot = torch.tensor([[0., 0., 1.], [1., 0., 0.], [0., 1., 0.]], device=device, dtype=torch.float32)
+    
+    # Grabs density from NeRF Neural Network
     density_fn = lambda x: model.density(x.reshape((-1, 3)) @ rot)['sigma'].reshape(x.shape[:-1])
 
-    # Rendering from the NeRF
+    # Rendering from the NeRF functions
     render_fn = lambda rays_o, rays_d: model.render(rays_o, rays_d, staged=True, bg_color=1., perturb=False, **vars(opt))
     get_rays_fn = lambda pose: get_rays(pose, dataset.intrinsics, dataset.H, dataset.W)
 
     # Main loop
     simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_fn, get_rays_fn)
+    
+    # Visualize trajectories in Blender
+    bevel_depth = 0.02      # Size of the curve visualized in blender
+    subprocess.run(['blender', blend_file, '-P', 'viz_data_blend.py', '--', opt.workspace, str(bevel_depth)])
+
+    end_text = 'End of simulation'
+    print(f'{end_text:.^20}')

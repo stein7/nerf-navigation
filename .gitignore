@@ -5,6 +5,12 @@
 *.npy
 *.npz
 *.dae
+*.json
+*.blend
+*.blend1
 data/*
 logs/*
+paths/*
+sim_img_cache/*
 .DS_Store
+stone_nerf

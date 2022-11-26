@@ -99,7 +99,8 @@ and return an observation image that ```simulate.py``` will perform pose estimat
 
 The **only** command you need to run the entire pipeline is the following:
 
-```python simulate.py data/nerf_synthetic/{model_name} --workspace {model_name_nerf} -O --bound {X} --scale 1.0 --dt_gamma 0
+```
+python simulate.py data/nerf_synthetic/{model_name} --workspace {model_name_nerf} -O --bound {X} --scale 1.0 --dt_gamma 0
 ```
 
 It is imperative that the parameters you pass in are the same as those used to train the NeRF (i.e. ```--bound```, ```--scale```, ```--dt_gamma```).

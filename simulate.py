@@ -49,27 +49,6 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
     # that minimizes collision and control effort.
     traj.learn_init()
 
-    # Visualize initial trajectory
-    # window = np.array([[-2., 2],
-    # [-2., 2],
-    # [.1, 0.5]])
-    # pc = density_to_pc(density_fn, threshold=100, N=1000000, window=window)
-
-    # fig = plt.figure()
-    # ax = plt.axes(projection='3d')
-    # pc = pc.detach().cpu().numpy()
-    # X, Y, Z = pc[:, 0], pc[:, 1], pc[:, 2]
-    # ax.scatter3D(X, Y, Z)
-
-    # pos = traj.get_full_states()
-    # pos = pos.detach().cpu().numpy()
-    # x, y, z = pos[:, 0], pos[:, 1], pos[:, 2]
-    # ax.plot3D(x, y, z, 'black')
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
-    # ax.set_zlabel('z')
-    # plt.show()
-
     #Change start state from 18-vector (with rotation as a rotation matrix) to 12 vector (with rotation as a rotation vector)
     start_state = torch.cat([start_state[:6], rot_matrix_to_vec(start_state[6:15].reshape((3, 3))), start_state[15:]], dim=-1).cuda()
 

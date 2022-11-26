@@ -1,10 +1,30 @@
-# NeRF-Navigation
+# nerf-nav
+#### A Navigation Pipeline using PyTorch and NeRFs
+### [Project](https://mikh3x4.github.io/nerf-navigation/) | [Video](https://youtu.be/5JjWpv9BaaE) | [Paper](https://arxiv.org/abs/2110.00168)
+
+[Vision-Only Robot Navigation in a Neural Radiance World](https://mikh3x4.github.io/nerf-navigation/)  
+ [Michal Adamkiewicz](https://profiles.stanford.edu/michal-adamkiewicz)\*<sup></sup>,
+ [Timothy Chen](https://msl.stanford.edu/people/timchen)\*<sup></sup>,
+ [Adam Caccavale](https://msl.stanford.edu/people/adamcaccavale)<sup></sup>,
+ [Rachel Gardner](https://rachel-gardner.com/)<sup></sup>,
+ [Preston Culbertson ](https://web.stanford.edu/~pculbert/)<sup></sup>,
+ [Jeannette Bohg](https://web.stanford.edu/~bohg/)<sup></sup>, 
+ [Mac Schwager](https://web.stanford.edu/~schwager/)<sup></sup> <br>
+  \*denotes equal contribution
+
+<p align="center">
+    <img src="assets/drone_headline.jpg"/>
+</p>
 
 ## Abstract
 
 NeRFs have recently emerged as a powerful paradigm for the representation of natural, complex 3D scenes. NeRFs represent continuous volumetric density and RGB values in a neural network, and generate photo-realistic images from unseen camera viewpoints through ray tracing.  We propose an algorithm for navigating a robot through a 3D environment represented as a NeRF using only an on-board RGB camera for localization.  We assume the NeRF for the scene has been pre-trained offline, and the robot's objective is to navigate through unoccupied space in the NeRF to reach a goal pose.  We introduce a trajectory optimization algorithm that avoids collisions with high-density regions in the NeRF based on a discrete time version of differential flatness that is amenable to constraining the robot's full pose and control inputs.  We also introduce an optimization based filtering method to estimate 6DoF pose and velocities for the robot in the NeRF given only an onboard RGB camera.  We combine the trajectory planner with the pose filter in an online replanning loop to give a vision-based robot navigation pipeline.  We present simulation results with a quadrotor robot navigating through a jungle gym environment, the inside of a church, and Stonehenge using only an RGB camera. We also demonstrate an omnidirectional ground robot navigating through the church, requiring it to reorient to fit through the narrow gap. Videos of this work can be found at [this link](https://mikh3x4.github.io/nerf-navigation/)
 
 ---
+
+## Update Log
+
+* 11/2022: Added visualization and integration of Blender module. **There is no longer a need to open Blender in a separate terminal for simulation. Everything is automatic.**
 
 ## Code Structure
 
@@ -17,63 +37,18 @@ For more infomation on the paper see the [paper page](https://mikh3x4.github.io/
 
 [Instant-NGP](https://github.com/NVlabs/instant-ngp) is an extension that grants enormous performance boosts in inference and training. This repository for navigation is built off of the PyTorch version of NGP.
 
+[torch-NGP](https://github.com/ashawkey/torch-ngp) is an implementation of Instant-NGP in Pytorch.
+
 ## Installation
 It is recommended to go to [torch-ngp](https://github.com/ashawkey/torch-ngp) page and install its dependencies there, as our code is an application of their code. If you can begin training without any issues in a conda environment, then you should be able to run our code just fine.
 
-This repo includes not only the navigation code, but also the code necessary to train the models (i.e. the repository is self-sufficient). As our dependencies are exactly the same as [nerf-pytorch](https://github.com/yenchenlin/nerf-pytorch), you can create a virtual environment straight from the repository by:
-
-```
-git clone https://github.com/yenchenlin/nerf-pytorch.git
-cd nerf-pytorch
-pip install -r requirements.txt
-```
+This repo includes not only the navigation code, but also the code necessary to train the models (i.e. the repository is self-sufficient).
 
 ## How To Run?
 
-### Training
+### File Creation
 
-Run NeRF training. Make sure your training data (from Blender) is located in ```nerf-navigation/data/nerf_synthetic/model_name```. The `data` folder will not be present when you clone this repository.
-You will have to create it yourself. This format should be identical to most NeRF repositories. The command to train on Blender scenes is:
-
-```python main_nerf.py data/nerf_synthetic/model_name --workspace model_name_nerf -O --bound x.x --scale 1.0 --dt_gamma 0
-```
-
-It is imperative you set ```scale``` to 1.0, so that torch-NGP does not resize the scene dimensions and cause a mismatch between the
-scale of the model dynamics and that of the NeRF. Set ```bound``` to be the bounding box of your Blender mesh. For example, for
-the Stonehenge scene, we used ```--bound 2.0```. For the Stonehenge scene data and model, please see the pretrained models section below.
-
-### Validation
-
-Once training has finished or you've achieved satisfactory results, the checkpoint will be in the ```model_name_nerf``` folder. You can see our pretrained Stonehenge model as a point of comparison.
-
-### Setting up Blender
-
-Make sure to download the latest version of Blender. We will use Blender as our simulation environment.
-First, open a new terminal in the folder where Blender is located and open blender (i.e. ```./blender``` in the terminal). This
-allows the user to break out of hanging scripts through the terminal. Once Blender is open, navigate to the Scripting tab,
-and open ```visualize.py``` if it is not already in the tab.
-
-Note: Make sure there is a Camera object in the scene.
-
-### Running
-
-Create a ```sim_img_cache``` folder right under `nerf-navigation` if it is not already there. This is where ```visualize.py``` will read in poses of the robot
-and return an observation image that ```simulate.py``` will perform pose estimation on.
-
-Run ```visualize.py``` in Blender by pressing the run button.
-
-Run the planning and estimation loop (in a terminal different than the one ```visualize.py``` is on) using the command:
-
-```python simulate.py data/nerf_synthetic/model_name --workspace model_name_nerf -O --bound x.x --scale 1.0 --dt_gamma 0
-```
-
-It is imperative that the parameters you pass in are the same as those used to train the NeRF (i.e. ```--bound```, ```--scale```, ```--dt_gamma```).
-All tunable configs (e.g. noise, initial and final conditions) are in ```simulate.py```.
-
-> [!NOTE]
-> Make sure your start and goal poses are not in occupied zones. If they are, you can set them (here)[https://github.com/mikh3x4/nerf-navigation/blob/1c207d6fd247b8facc5bbf63392a1e6bcc669b12/simulate.py#L245-L246] in `simulate.py`.
-
----
+**Create `data`, `paths`, and `sim_img_cache` folders in the workspace.**
 
 ### Datasets
 Following the canonical data format for NeRFs, your training data from Blender should look like the following:
@@ -90,17 +65,51 @@ Following the canonical data format for NeRFs, your training data from Blender s
 │   └── transforms_val.json
 ```
 
-Place this folder here:
-```                                                                                                                                                                 ├── data                                       
-│   ├── nerf_synthetic                                                                                                  
-│   │   └── model_name                                                                                                                             
+### Training
+
+Run NeRF training. Make sure your training data (from Blender) is located in ```data/nerf_synthetic/{model_name}```. The `data` folder will not be present when you clone this repository.
+You will have to create it yourself. This format should be identical to most NeRF repositories. The command to train on Blender scenes is:
+
+```python main_nerf.py data/nerf_synthetic/{model_name} --workspace {model_name_nerf} -O --bound {X} --scale 1.0 --dt_gamma 0
 ```
 
----
+It is imperative you set ```scale``` to 1.0, so that torch-NGP does not resize the scene dimensions and cause a mismatch between the
+scale of the model dynamics and that of the NeRF. Set ```bound``` to be the bounding box of your Blender mesh. For example, for
+the Stonehenge scene, we used ```--bound 2.0```. For the Stonehenge scene data and model, please see the pretrained models section below.
 
 ### Pre-trained Models
 
-Our results are primarily from the Stonehenge scene. The training data, pre-trained model, and Blender mesh can be found [here](https://drive.google.com/drive/folders/104v_ehsK8joFHpPFZv_x31wjt-FUOe_Y?usp=sharing).
+Our results are primarily from the Stonehenge scene. **The training data (stonehenge), pre-trained model (stone_nerf), and Blender mesh (stonehenge.blend) can be found [here]**(https://drive.google.com/drive/folders/104v_ehsK8joFHpPFZv_x31wjt-FUOe_Y?usp=sharing).
+
+### Validation
+
+Once training has finished or you've achieved satisfactory results, the checkpoint will be in the ```{model_name_nerf}``` folder. You can see our pretrained Stonehenge model as a point of comparison.
+
+### Setting up Blender
+
+Make sure to download the latest version of Blender. We will use Blender as our simulation environment. **Ensure that the command ```blender``` in terminal pulls up a Blender instance.**
+
+**Note: Make sure there is a Camera object in the scene.**
+
+### Running
+
+Create a ```sim_img_cache``` folder  if it is not already there. This is where ```viz_func.py``` will read in poses of the robot
+and return an observation image that ```simulate.py``` will perform pose estimation on.
+
+The **only** command you need to run the entire pipeline is the following:
+
+```python simulate.py data/nerf_synthetic/{model_name} --workspace {model_name_nerf} -O --bound {X} --scale 1.0 --dt_gamma 0
+```
+
+It is imperative that the parameters you pass in are the same as those used to train the NeRF (i.e. ```--bound```, ```--scale```, ```--dt_gamma```).
+All tunable configs (e.g. noise, initial and final conditions) are in ```simulate.py```.
+
+Once the simulation is finished, a Blender instance will appear. The collection ```{model_name}_visualization``` will be populated by the initial plan through the scene (traj_init) and the subsequent replans at every time step (traj_{time_step}). 
+
+> [!NOTE]
+> Make sure your start and goal poses are not in occupied zones. If they are, you can change them on lines 236-237 in `simulate.py`. You will need to open the Blender scene and put in coordinates that are not colliding with the mesh.
+
+---
 
 ## Citation
 Remember to cite the original NeRF authors for their work:
@@ -135,4 +144,17 @@ and those from torch-NGP:
     Note = {https://github.com/ashawkey/torch-ngp},
     Title = {Torch-ngp: a PyTorch implementation of instant-ngp}
 }
+```
+
+and finally our work:
+```
+@article{nerf-nav,
+  author={Adamkiewicz, Michal and Chen, Timothy and Caccavale, Adam and Gardner, Rachel and Culbertson, Preston and Bohg, Jeannette and Schwager, Mac},
+  journal={IEEE Robotics and Automation Letters}, 
+  title={Vision-Only Robot Navigation in a Neural Radiance World}, 
+  year={2022},
+  volume={7},
+  number={2},
+  pages={4606-4613},
+  doi={10.1109/LRA.2022.3150497}}
 ```

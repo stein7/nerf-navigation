@@ -5,56 +5,62 @@ import json
 import cv2
 import time
 import imageio
-from nav.quad_helpers import vec_to_rot_matrix, rot_matrix_to_vec
+from nav.math_utils import vec_to_rot_matrix, rot_matrix_to_vec, rot_x, skew_matrix_torch
+import subprocess
 
-#Helper functions
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# #Helper functions
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-rot_x = lambda phi: torch.tensor([
-        [1., 0., 0.],
-        [0., torch.cos(phi), -torch.sin(phi)],
-        [0., torch.sin(phi), torch.cos(phi)]], dtype=torch.float32, device=device)
+# rot_x = lambda phi: torch.tensor([
+#         [1., 0., 0.],
+#         [0., torch.cos(phi), -torch.sin(phi)],
+#         [0., torch.sin(phi), torch.cos(phi)]], dtype=torch.float32, device=device)
 
-def skew_matrix_torch(vector):  # vector to skewsym. matrix
+# def skew_matrix_torch(vector):  # vector to skewsym. matrix
 
-    ss_matrix = torch.zeros((3,3))
-    ss_matrix[0, 1] = -vector[2]
-    ss_matrix[0, 2] = vector[1]
-    ss_matrix[1, 0] = vector[2]
-    ss_matrix[1, 2] = -vector[0]
-    ss_matrix[2, 0] = -vector[1]
-    ss_matrix[2, 1] = vector[0]
+#     ss_matrix = torch.zeros((3,3))
+#     ss_matrix[0, 1] = -vector[2]
+#     ss_matrix[0, 2] = vector[1]
+#     ss_matrix[1, 0] = vector[2]
+#     ss_matrix[1, 2] = -vector[0]
+#     ss_matrix[2, 0] = -vector[1]
+#     ss_matrix[2, 1] = vector[0]
 
-    return ss_matrix
+#     return ss_matrix
 
 def add_noise_to_state(state, noise):
     return state + noise
 
 class Agent():
-    def __init__(self, x0, cfg) -> None:
+    def __init__(self, agent_cfg, camera_cfg, blender_cfg) -> None:
 
-        #Initialize simulator
-        self.path = cfg['path']
-        self.half_res = cfg['half_res']
-        self.white_bg = cfg['white_bg']
+        #Initialize camera params
+        self.path = camera_cfg['path']
+        self.half_res = camera_cfg['half_res']
+        self.white_bg = camera_cfg['white_bg']
+
+        self.data = {
+        'pose': None,
+        'res_x': camera_cfg['res_x'],           # x resolution
+        'res_y': camera_cfg['res_y'],           # y resolution
+        'trans': camera_cfg['trans'],     # Boolean
+        'mode': camera_cfg['mode']             # Must be either 'RGB' or 'RGBA'
+        }   
+
+        self.blend = blender_cfg['blend_path']
+        self.blend_script = blender_cfg['script_path']
 
         self.iter = 0
 
-        #Initialized pose
-        self.x0 = x0
-        self.x = x0
-
-        self.dt = cfg['dt']
-        self.g = cfg['g']
-        self.mass = cfg['mass']
-        self.I = cfg['I']
+        #Initialized pose and agent params
+        self.x = agent_cfg['x0']
+        self.dt = agent_cfg['dt']
+        self.g = agent_cfg['g']
+        self.mass = agent_cfg['mass']
+        self.I = agent_cfg['I']
         self.invI = torch.inverse(self.I)
 
         self.states_history = [self.x.clone().cpu().detach().numpy().tolist()]
-
-    def reset(self):
-        self.x = self.x0
-        return
 
     def step(self, action, noise=None):
         #DYANMICS FUNCTION
@@ -78,10 +84,12 @@ class Agent():
         new_pose[:3, 3] = new_state[:3]
 
         # Write a transform file and receive an image from Blender
-        path_to_pose = self.path + f'/{self.iter}.json'
-        self.write_transform(new_pose, path_to_pose)
-        path_to_img = self.path + f'/{self.iter}.png'
-        img = torch.from_numpy(self.listen_img(path_to_img))
+        # Modify data dictionary to update pose
+        self.data['pose'] = new_pose.tolist()
+
+        # Capture image
+        img = self.get_img(self.data)
+        img = torch.from_numpy(img)
         self.states_history.append(self.x.clone().cpu().detach().numpy().tolist())
         self.iter += 1
 
@@ -101,10 +109,13 @@ class Agent():
         new_pose[:3, 3] = new_state[:3]
 
         # Write a transform file and receive an image from Blender
-        path_to_pose = self.path + f'/{self.iter}.json'
-        self.write_transform(new_pose, path_to_pose)
-        path_to_img = self.path + f'/{self.iter}.png'
-        img = self.listen_img(path_to_img)
+        # Write a transform file and receive an image from Blender
+        # Modify data dictionary to update pose
+        self.data['pose'] = new_pose.tolist()
+
+        # Capture image
+        img = self.get_img(self.data)
+        img = torch.from_numpy(img)
         self.img = img
         self.states_history.append(self.x.clone().cpu().detach().numpy().tolist())
 
@@ -159,16 +170,26 @@ class Agent():
 
         return next_state
 
-    def write_transform(self, transform, filename):
-        with open(filename,"w+") as f:
-            json.dump(transform.tolist(), f)
-        return
+    def get_img(self, data):
+        pose_path = self.path + f'/{self.iter}.json'
+        img_path = self.path + f'/{self.iter}.png'
 
-    def listen_img(self, filename):
-        while os.path.exists(filename) is False:
-            time.sleep(0.01)
-        time.sleep(.3)
-        img = imageio.imread(filename)
+        try: 
+            with open(pose_path,"w+") as f:
+                json.dump(data, f, indent=4)
+        except Exception as err:
+            print(f"Unexpected {err}, {type(err)}")
+            raise
+
+        # Run the capture image script in headless blender
+        subprocess.run(['blender', '-b', self.blend, '-P', self.blend_script, '--', pose_path, img_path])
+
+        try: 
+            img = imageio.imread(img_path)
+        except Exception as err:
+            print(f"Unexpected {err}, {type(err)}")
+            raise
+
         img = (np.array(img) / 255.0).astype(np.float32)
         if self.half_res is True:
             width = int(img.shape[1]//2)
@@ -184,13 +205,6 @@ class Agent():
         img = (np.array(img) * 255.).astype(np.uint8)
         print('Received updated image')
         return img
-
-    def command_sim_reset(self):
-        filename = self.path + '/reset.json'
-        content = {}
-        with open(filename,"w+") as f:
-            json.dump(content, f)
-        return
 
     def save_data(self, filename):
         true_states = {}

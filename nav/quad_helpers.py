@@ -2,8 +2,8 @@ import torch
 import numpy as np
 import json
 import heapq 
-
 import matplotlib.pyplot as plt
+from nav.math_utils import skew_matrix
 
 class Simulator:
 
@@ -321,73 +321,73 @@ def settings():
     start_vel = torch.tensor([0, 0, 0, 0])
     end_vel   = torch.tensor([0, 0, 0, 0])
 
-def rot_matrix_to_vec(R):
-    batch_dims = R.shape[:-2]
+# def rot_matrix_to_vec(R):
+#     batch_dims = R.shape[:-2]
 
-    trace = torch.diagonal(R, dim1=-2, dim2=-1).sum(-1)
+#     trace = torch.diagonal(R, dim1=-2, dim2=-1).sum(-1)
 
-    def acos_safe(x, eps=1e-7):
-        """https://github.com/pytorch/pytorch/issues/8069"""
-        slope = np.arccos(1-eps) / eps
-        # TODO: stop doing this allocation once sparse gradients with NaNs (like in
-        # th.where) are handled differently.
-        buf = torch.empty_like(x)
-        good = abs(x) <= 1-eps
-        bad = ~good
-        sign = torch.sign(x[bad])
-        buf[good] = torch.acos(x[good])
-        buf[bad] = torch.acos(sign * (1 - eps)) - slope*sign*(abs(x[bad]) - 1 + eps)
-        return buf
+#     def acos_safe(x, eps=1e-7):
+#         """https://github.com/pytorch/pytorch/issues/8069"""
+#         slope = np.arccos(1-eps) / eps
+#         # TODO: stop doing this allocation once sparse gradients with NaNs (like in
+#         # th.where) are handled differently.
+#         buf = torch.empty_like(x)
+#         good = abs(x) <= 1-eps
+#         bad = ~good
+#         sign = torch.sign(x[bad])
+#         buf[good] = torch.acos(x[good])
+#         buf[bad] = torch.acos(sign * (1 - eps)) - slope*sign*(abs(x[bad]) - 1 + eps)
+#         return buf
 
-    # angle = torch.acos((trace - 1) / 2)[..., None]
-    angle = acos_safe((trace - 1) / 2)[..., None]
-    # print(trace, angle)
+#     # angle = torch.acos((trace - 1) / 2)[..., None]
+#     angle = acos_safe((trace - 1) / 2)[..., None]
+#     # print(trace, angle)
 
-    vec = (
-        1
-        / (2 * torch.sin(angle + 1e-10))
-        * torch.stack(
-            [
-                R[..., 2, 1] - R[..., 1, 2],
-                R[..., 0, 2] - R[..., 2, 0],
-                R[..., 1, 0] - R[..., 0, 1],
-            ],
-            dim=-1,
-        )
-    )
+#     vec = (
+#         1
+#         / (2 * torch.sin(angle + 1e-10))
+#         * torch.stack(
+#             [
+#                 R[..., 2, 1] - R[..., 1, 2],
+#                 R[..., 0, 2] - R[..., 2, 0],
+#                 R[..., 1, 0] - R[..., 0, 1],
+#             ],
+#             dim=-1,
+#         )
+#     )
 
-    # needed to overwrite nanes from dividing by zero
-    vec[angle[..., 0] == 0] = torch.zeros(3, device=R.device)
+#     # needed to overwrite nanes from dividing by zero
+#     vec[angle[..., 0] == 0] = torch.zeros(3, device=R.device)
 
-    # eg TensorType["batch_size", "views", "max_objects", 3, 1]
-    rot_vec = (angle * vec)[...]
+#     # eg TensorType["batch_size", "views", "max_objects", 3, 1]
+#     rot_vec = (angle * vec)[...]
 
-    return rot_vec
+#     return rot_vec
 
-def vec_to_rot_matrix(rot_vec):
-    assert not torch.any(torch.isnan(rot_vec))
+# def vec_to_rot_matrix(rot_vec):
+#     assert not torch.any(torch.isnan(rot_vec))
 
-    angle = torch.norm(rot_vec, dim=-1, keepdim=True)
+#     angle = torch.norm(rot_vec, dim=-1, keepdim=True)
 
-    axis = rot_vec / (1e-10 + angle)
-    S = skew_matrix(axis)
-    # print(S.shape)
-    # print(angle.shape)
-    angle = angle[...,None]
-    rot_matrix = (
-            torch.eye(3)
-            + torch.sin(angle) * S
-            + (1 - torch.cos(angle)) * S @ S
-            )
-    return rot_matrix
+#     axis = rot_vec / (1e-10 + angle)
+#     S = skew_matrix(axis)
+#     # print(S.shape)
+#     # print(angle.shape)
+#     angle = angle[...,None]
+#     rot_matrix = (
+#             torch.eye(3)
+#             + torch.sin(angle) * S
+#             + (1 - torch.cos(angle)) * S @ S
+#             )
+#     return rot_matrix
 
-def skew_matrix(vec):
-    batch_dims = vec.shape[:-1]
-    S = torch.zeros(*batch_dims, 3, 3)
-    S[..., 0, 1] = -vec[..., 2]
-    S[..., 0, 2] =  vec[..., 1]
-    S[..., 1, 0] =  vec[..., 2]
-    S[..., 1, 2] = -vec[..., 0]
-    S[..., 2, 0] = -vec[..., 1]
-    S[..., 2, 1] =  vec[..., 0]
-    return S
+# def skew_matrix(vec):
+#     batch_dims = vec.shape[:-1]
+#     S = torch.zeros(*batch_dims, 3, 3)
+#     S[..., 0, 1] = -vec[..., 2]
+#     S[..., 0, 2] =  vec[..., 1]
+#     S[..., 1, 0] =  vec[..., 2]
+#     S[..., 1, 2] = -vec[..., 0]
+#     S[..., 2, 0] = -vec[..., 1]
+#     S[..., 2, 1] =  vec[..., 0]
+#     return S

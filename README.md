@@ -70,7 +70,8 @@ Following the canonical data format for NeRFs, your training data from Blender s
 Run NeRF training. Make sure your training data (from Blender) is located in ```data/nerf_synthetic/{model_name}```. The `data` folder will not be present when you clone this repository.
 You will have to create it yourself. This format should be identical to most NeRF repositories. The command to train on Blender scenes is:
 
-```python main_nerf.py data/nerf_synthetic/{model_name} --workspace {model_name_nerf} -O --bound {X} --scale 1.0 --dt_gamma 0
+```
+python main_nerf.py data/nerf_synthetic/{model_name} --workspace {model_name_nerf} -O --bound {X} --scale 1.0 --dt_gamma 0
 ```
 
 It is imperative you set ```scale``` to 1.0, so that torch-NGP does not resize the scene dimensions and cause a mismatch between the

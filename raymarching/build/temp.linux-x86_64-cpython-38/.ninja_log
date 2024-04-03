@@ -1,0 +1,5 @@
+# ninja log v5
+0	22450	1681905275553873962	/home/seryeong/project/24vlsi/nerf-navigation/raymarching/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/raymarching/src/bindings.o	5d3141b7e6dc64c4
+1	48805	1681905301933943191	/home/seryeong/project/24vlsi/nerf-navigation/raymarching/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/raymarching/src/raymarching.o	2d052c041d806bbe
+0	21741	1690121130659998662	/home/seryeong/project/24vlsi/nerf-navigation/raymarching/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/raymarching/src/bindings.o	870f81937c7a9c9e
+1	43851	1690121152784613991	/home/seryeong/project/24vlsi/nerf-navigation/raymarching/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/raymarching/src/raymarching.o	2d2197c88fd3a171

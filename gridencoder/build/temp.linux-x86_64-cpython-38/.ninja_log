@@ -1,0 +1,5 @@
+# ninja log v5
+0	21527	1681905330458018409	/home/seryeong/project/24vlsi/nerf-navigation/gridencoder/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/gridencoder/src/bindings.o	3fdea8437aec8783
+1	76866	1681905385810165368	/home/seryeong/project/24vlsi/nerf-navigation/gridencoder/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/gridencoder/src/gridencoder.o	a2337cfc6d6ad74a
+0	20813	1690121178853339080	/home/seryeong/project/24vlsi/nerf-navigation/gridencoder/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/gridencoder/src/bindings.o	182fcf3349aa39f
+0	70276	1690121228318715122	/home/seryeong/project/24vlsi/nerf-navigation/gridencoder/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/gridencoder/src/gridencoder.o	8a5deab7a19e7621

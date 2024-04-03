@@ -16,8 +16,12 @@ if __name__ == "__main__":
     # argv should only be the path to a json file containing camera info
     path_to_args = argv[0]
     path_to_saves = argv[1]
+    print("path_to_args: " + path_to_args)
+    print("path_to_saves: " + path_to_saves)
 
     # Where to look and where to save
+    #arg_path = bpy.path.abspath('//') + path_to_args
+    #save_path = bpy.path.abspath('//') + path_to_saves
     arg_path = bpy.path.abspath('//') + path_to_args
     save_path = bpy.path.abspath('//') + path_to_saves
 

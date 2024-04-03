@@ -8,7 +8,8 @@ from nerf.utils import *
 from functools import partial
 from loss import huber_loss
 
-#torch.autograd.set_detect_anomaly(True)
+import pdb
+torch.autograd.set_detect_anomaly(True)
 
 if __name__ == '__main__':
 
@@ -21,7 +22,7 @@ if __name__ == '__main__':
 
     ### training options
     parser.add_argument('--iters', type=int, default=30000, help="training iters")
-    parser.add_argument('--lr', type=float, default=1e-2, help="initial learning rate")
+    parser.add_argument('--lr', type=float, default=7e-3, help="initial learning rate")
     parser.add_argument('--ckpt', type=str, default='latest')
     parser.add_argument('--num_rays', type=int, default=4096, help="num rays sampled per image for each training step")
     parser.add_argument('--cuda_ray', action='store_true', help="use CUDA raymarching instead of pytorch")
@@ -84,7 +85,9 @@ if __name__ == '__main__':
     seed_everything(opt.seed)
 
     model = NeRFNetwork(
-        encoding="hashgrid",
+        encoding="frequency",
+        num_layers=6,
+        hidden_dim=128,
         bound=opt.bound,
         cuda_ray=opt.cuda_ray,
         density_scale=1,

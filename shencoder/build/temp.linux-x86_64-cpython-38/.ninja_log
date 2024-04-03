@@ -1,0 +1,5 @@
+# ninja log v5
+0	21399	1681905414386241718	/home/seryeong/project/24vlsi/nerf-navigation/shencoder/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/shencoder/src/bindings.o	7e18fc450877a91b
+0	175176	1681905568170657406	/home/seryeong/project/24vlsi/nerf-navigation/shencoder/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/shencoder/src/shencoder.o	c6319636767b04cf
+0	20485	1690121254223435838	/home/seryeong/project/24vlsi/nerf-navigation/shencoder/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/shencoder/src/bindings.o	cd36227c0324dea9
+0	43822	1690121277572085490	/home/seryeong/project/24vlsi/nerf-navigation/shencoder/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/shencoder/src/shencoder.o	bf56a2e3bd03e305

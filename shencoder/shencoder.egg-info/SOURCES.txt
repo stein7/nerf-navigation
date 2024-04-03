@@ -1,0 +1,7 @@
+setup.py
+/home/seryeong/project/24vlsi/nerf-navigation/shencoder/src/bindings.cpp
+/home/seryeong/project/24vlsi/nerf-navigation/shencoder/src/shencoder.cu
+shencoder.egg-info/PKG-INFO
+shencoder.egg-info/SOURCES.txt
+shencoder.egg-info/dependency_links.txt
+shencoder.egg-info/top_level.txt

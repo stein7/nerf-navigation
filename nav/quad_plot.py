@@ -6,11 +6,17 @@ import json
 from .math_utils import rot_matrix_to_vec
 from .quad_helpers import astar, next_rotation
 
+import pdb
+import csv
+import pandas as pd
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Planner:
-    def __init__(self, start_state, end_state, cfg, density_fn):
+    def __init__(self, start_state, end_state, cfg, density, density_fn, density_prun_fn):
         self.nerf = density_fn
+        self.nerf_prun = density_prun_fn
+        self.nerf_origin = density
 
         self.cfg                = cfg
         self.T_final            = cfg['T_final']
@@ -52,6 +58,9 @@ class Planner:
 
         self.epoch = 0
 
+        self.init_loss_log = []
+
+
     def full_to_reduced_state(self, state):
         pos = state[:3]
         R = state[6:15].reshape((3,3))
@@ -63,6 +72,7 @@ class Planner:
 
     def a_star_init(self):
         side = 100 #PARAM grid size
+        #side = 10
 
         if self.CHURCH:
             x_linspace = torch.linspace(-2,-1, side)
@@ -76,29 +86,61 @@ class Planner:
             coods = torch.stack( torch.meshgrid( linspace, linspace, linspace ), dim=-1)
 
         kernel_size = 5 # 100/5 = 20. scene size of 2 gives a box size of 2/20 = 0.1 = drone size
-        output = self.nerf(coods)
+       
+        outputs = self.nerf_origin(coods)
+        output = outputs['sigma'].reshape(coods.shape[:-1])
+        output_prun = outputs['sigma_prun'].reshape(coods.shape[:-1])
+        pdb.set_trace()
+
+        #print("non-pruned output inference start")
+        #output = self.nerf(coods)
+        #print("non-pruned output inference done")
+        #print("pruned output inference start")
+        #output_prun = self.nerf_prun(coods)
+        #print("pruned output inference done")
+
+
         maxpool = torch.nn.MaxPool3d(kernel_size = kernel_size)
         #PARAM cut off such that neural network outputs zero (pre shifted sigmoid)
-
+        
         # 20, 20, 20
         occupied = maxpool(output[None,None,...])[0,0,...] > 0.3
+        occupied_prun = maxpool(output_prun[None,None,...])[0,0,...] > 0.3
+        pdb.set_trace()
+        pdb.set_trace()
+
+        #### Save Occupancy Val as csv ####
+        output_filename = './occupancy_log/a_star_output_log.csv'
+        occupancy_filename = './occupancy_log/a_star_occupancy_log.csv'
+
+
+        with open (occupancy_filename, 'w', newline='') as f:
+           writer = csv.writer(f)
+           writer.writerows(occupied.reshape(8,-1).cpu().numpy())
+           torch.save(occupied, './occupancy_log/occupancy.pth')
+
+        with open (output_filename, 'w', newline='') as f_out:
+           writer = csv.writer(f_out)
+           writer.writerows(output.reshape(10,-1).cpu().numpy())
+           torch.save(output, './occupancy_log/output.pth')
 
         grid_size = side//kernel_size
-
         #convert to index cooredinates
-        start_grid_float = grid_size*(self.start_state[:3] + 1)/2
-        end_grid_float   = grid_size*(self.end_state  [:3] + 1)/2
+        #start_grid_float = grid_size*(self.start_state[:3] + 1)/2
+        #end_grid_float   = grid_size*(self.end_state  [:3] + 1)/2
+        start_grid_float = grid_size*(self.start_state[:3]  + 1)/2
+        end_grid_float   = grid_size*(self.end_state  [:3]  + 1)/2
         start = tuple(int(start_grid_float[i]) for i in range(3) )
         end =   tuple(int(end_grid_float[i]  ) for i in range(3) )
 
         print(start, end)
-        path = astar(occupied, start, end)
 
+        path = astar(occupied, start, end)                                              # 21 elements in A*
         # convert from index cooredinates
-        squares =  2* (torch.tensor( path, dtype=torch.float)/grid_size) -1
+        squares =  2* (torch.tensor( path, dtype=torch.float)/grid_size) -1             # 21,3
 
         #adding way
-        states = torch.cat( [squares, torch.zeros( (squares.shape[0], 1) ) ], dim=-1)
+        states = torch.cat( [squares, torch.zeros( (squares.shape[0], 1) ) ], dim=-1)   # 21,4
 
         #prevents weird zero derivative issues
         randomness = torch.normal(mean= 0, std=0.001*torch.ones(states.shape) )
@@ -110,16 +152,19 @@ class Planner:
         # 2 3 4 5 6 7 7
         prev_smooth = torch.cat([states[0,None, :], states[:-1,:]],        dim=0)
         next_smooth = torch.cat([states[1:,:],      states[-1,None, :], ], dim=0)
-        states = (prev_smooth + next_smooth + states)/3
+        states = (prev_smooth + next_smooth + states)/3                                 # 21,4
 
         self.states = states.clone().detach().requires_grad_(True)
+    
+        print("End of A*")
+        pdb.set_trace()
 
     def params(self):
         return [self.initial_accel, self.states]
 
     def calc_everything(self):
 
-        start_pos   = self.start_state[None, 0:3]
+        start_pos   = self.start_state[None, 0:3]                   # 18 len to 3
         start_v     = self.start_state[None, 3:6]
         start_R     = self.start_state[6:15].reshape((1, 3, 3))
         start_omega = self.start_state[None, 15:]
@@ -144,7 +189,7 @@ class Planner:
         after2_next_pos = after_next_pos + after_next_vel * self.dt
     
         # position 2 and 3 are unused - but the atached roations are
-        current_pos = torch.cat( [start_pos, next_pos, after_next_pos, after2_next_pos, self.states[2:, :3], end_pos], dim=0)
+        current_pos = torch.cat( [start_pos, next_pos, after_next_pos, after2_next_pos, self.states[2:, :3], end_pos], dim=0)           #24, 3
 
         prev_pos = current_pos[:-1, :]
         next_pos = current_pos[1: , :]
@@ -228,7 +273,7 @@ class Planner:
         torques = torch.norm(actions[:, 1:], dim=-1).to(device)
 
         # S, B, 3  =  S, _, 3 +      _, B, 3   X    S, _,  3
-        B_body, B_omega = torch.broadcast_tensors(self.robot_body, omega[:,None,:])
+        B_body, B_omega = torch.broadcast_tensors(self.robot_body, omega[:,None,:])         # 24, 500, 3(x,y,z)
         point_vels = vel[:,None,:] + torch.cross(B_body, B_omega, dim=-1)
 
         # S, B
@@ -254,14 +299,15 @@ class Planner:
         return torch.mean(total_cost)
 
     def learn_init(self):
-        opt = torch.optim.Adam(self.params(), lr=self.lr, capturable=True)
-
+        opt = torch.optim.Adam(self.params(), lr=self.lr, capturable=True) 
+        #opt = torch.optim.Adam(self.params(), lr=self.lr)
         try:
             for it in range(self.epochs_init):
                 opt.zero_grad()
                 self.epoch = it
                 loss = self.total_cost()
-                print(it, loss)
+                self.init_loss_log.append(loss.item())
+                print(str(it) + " iteration (" +  str(loss.item()) + ")")
                 loss.backward()
                 opt.step()
 
@@ -273,10 +319,18 @@ class Planner:
                     else:
                         print("Warning: data not saved!")
 
+            #### Save Init Loss Log as csv ####
+            filename = './loss_log/init_loss_log.csv'
+            with open(filename, 'w', newline='') as f : 
+                writer = csv.writer(f) 
+                writer.writerow(self.init_loss_log) 
+
+
         except KeyboardInterrupt:
             print("finishing early")
 
     def learn_update(self, iteration):
+        print(iteration," th Learn updating: ", self.epochs_update)
         opt = torch.optim.Adam(self.params(), lr=self.lr, capturable=True)
 
         for it in range(self.epochs_update):
@@ -299,12 +353,17 @@ class Planner:
                 else:
                     print("Warning: data not saved!")
 
+        print("Learned matrix: ", self.states)
+        print("Learned shape: ", self.states.shape)
+
     def update_state(self, measured_state):
         pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
 
         self.start_state = measured_state
         self.states = self.states[1:, :].detach().requires_grad_(True)
         self.initial_accel = actions[1:3, 0].detach().requires_grad_(True)
+        print("New state : ", self.states)
+        print("New state shape: ", self.states.shape)
         # print(self.initial_accel.shape)
 
     def plot(self, quadplot):

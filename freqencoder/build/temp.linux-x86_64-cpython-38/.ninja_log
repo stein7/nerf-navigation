@@ -1,0 +1,5 @@
+# ninja log v5
+0	21377	1681905596546734881	/home/seryeong/project/24vlsi/nerf-navigation/freqencoder/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/freqencoder/src/bindings.o	521a9fb672847938
+0	172036	1681905747215149496	/home/seryeong/project/24vlsi/nerf-navigation/freqencoder/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/freqencoder/src/freqencoder.o	4d6b64525dee1389
+0	20686	1690121303524807649	/home/seryeong/project/24vlsi/nerf-navigation/freqencoder/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/freqencoder/src/bindings.o	8cc7d8e7554ddf4d
+0	43165	1690121326013433461	/home/seryeong/project/24vlsi/nerf-navigation/freqencoder/build/temp.linux-x86_64-cpython-38/home/seryeong/project/24vlsi/nerf-navigation/freqencoder/src/freqencoder.o	173caf99dc653b04

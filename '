@@ -12,12 +12,8 @@ from nerf.provider import NeRFDataset
 import pdb as pdb
 import matplotlib.pyplot as plt
 
-from lib.precision import *
+from lib.precision import custom_precision
 import math
-
-import csv
-
-import copy
 
 
 # Import Helper Classes
@@ -26,7 +22,7 @@ from nav import (Estimator, Agent, Planner, vec_to_rot_matrix, rot_matrix_to_vec
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 ####################### MAIN LOOP ##########################################
-def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density, density_fn, density_prun_fn, render_fn, get_rays_fn):
+def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_fn, get_rays_fn):
     '''
     Main loop that iterates between planning and estimation.
     '''
@@ -49,23 +45,18 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density, density_fn,
     print("created", basefolder)
   
     
+    
+    
     # Initialize Planner
     print("Initialize Planner...")
-    traj = Planner(start_state, end_state, planner_cfg, density, density_fn, density_prun_fn, opt)
+    traj = Planner(start_state, end_state, planner_cfg, density_fn)
 
     traj.basefolder = basefolder
 
     # Create a coarse trajectory to initialize the planner by using A*. 
-    if opt.stonehenge_path1:
-        print("Initialize A* Planner...")
-        traj.a_star_init()
-    else :
-        print("DH init Planner...")
-        start_pos = planner_cfg['start_pos']
-        end_pos = planner_cfg['end_pos']
-        points = planner_cfg['points']
-        traj.dh_init(start_pos, end_pos, points)
-        
+    print("Initialize A* Planner...")
+    traj.a_star_init()
+    pdb.set_trace()
     # From the A* initialization, perform gradient descent on the flat states of agent to get a trajectory
     # that minimizes collision and control effort.
     print("Trajectory Gradient Descent...")
@@ -180,30 +171,9 @@ if __name__ == "__main__":
     parser.add_argument('--clip_text', type=str, default='', help="text input for CLIP guidance")
     parser.add_argument('--rand_pose', type=int, default=-1, help="<0 uses no rand pose, =0 only uses rand pose, >0 sample one rand pose every $ known poses")
 
-    ### SR Quantization
-    parser.add_argument('--fxp', action='store_true', help="use fixed point quantization")
-    parser.add_argument('--fxp_bw', type=int, default=8, help="default fixed point bit width")
-
-    ### SR Simulation Option
-    parser.add_argument('--approx', action='store_true', help="simulate approx simulation")
-    parser.add_argument('--off_loading', action='store_true', help="simulate bg off-loading simulation")
-
-
-
-    ### DH Simulation Option
-    parser.add_argument('--a_star_way', action='store_true', default=True, help="A* -> linear interpolation")
-    parser.add_argument('--inp_way', action='store_true', help="Simple linear interpolation")
-    parser.add_argument('--pointssss', type=int, default=10, help="interpolation point number")
-
-    parser.add_argument('--stonehenge_path1', action='store_true')
-    parser.add_argument('--stonehenge_path2', action='store_true')
-    parser.add_argument('--stonehenge_path3', action='store_true')
-    parser.add_argument('--scannet_path1', action='store_true')
-    parser.add_argument('--scannet_path2', action='store_true')
-    parser.add_argument('--replica_path', action='store_true')
-    parser.add_argument('--outdoor_path', action='store_true')
-
-    parser.add_argument('--waypoint', type=int, default=1)
+    ### SR Custom 
+    parser.add_argument('--fxp_bw', type=int, default=8 )       # opt.fxp_bw
+    parser.add_argument('--fxp', action='store_true' )          # opt.fxp
 
 
 
@@ -232,26 +202,36 @@ if __name__ == "__main__":
 
     seed_everything(opt.seed)
 
-    print("SR) Start Model Conf")
+    print("SR) Start Model Config")
     model = NeRFNetwork(
-        opt = opt,
-        encoding="frequency",
+        encoding="hashgrid",
         bound=opt.bound,
         cuda_ray=opt.cuda_ray,
         density_scale=1,
         min_near=opt.min_near,
         density_thresh=opt.density_thresh,
         bg_radius=opt.bg_radius,
-        num_layers=6,
-        hidden_dim=128,
-        fxp=opt.fxp,
-        fxp_bw=opt.fxp_bw
     )
     print(model)
 
+    if opt.fxp:
+        layer = 0
+        for name, param in model.named_parameters():
+            if param.dim() != 1:
+                if param.max() <= 1:
+                    w_int_bw = 0
+                else:
+                    w_int_bw = math.log2(param.max())
 
-
-
+                pdb.set_trace()
+                print(param.data)
+                param.data=custom_precision(param.data, w_int_bw, opt.fxp_bw-1-w_int_bw, 'fxp') 
+                print(str(layer) + "th layer quantization done")
+                print(str(layer) + "th layer MAX = " + str(param.max()) + ", INT_BW = " + str(w_int_bw) + ", FLOAT_BW = " + str(opt.fxp_bw-1-w_int_bw))
+                layer = layer + 1
+                pdb.set_trace()
+                
+    
     print("SR) Model Eval Start")
     model.eval()
     metrics = [PSNRMeter(),]
@@ -259,44 +239,6 @@ if __name__ == "__main__":
     criterion = torch.nn.MSELoss(reduction='none')
     print("SR) Trainer Start")
     trainer = Trainer('ngp', opt, model, device=device, workspace=opt.workspace, criterion=criterion, fp16=opt.fp16, metrics=metrics, use_checkpoint=opt.ckpt)
-
-    if opt.fxp:
-        layer = 0 
-        for name, param in model.named_parameters():
-            if param.dim() != 1:
-                param.requires_grad = False
-                w_int_bw = int(math.log2(param.max()))
-                print(param.data)
-                param.data=custom_precision(param.data, w_int_bw, opt.fxp_bw-1-w_int_bw, 'fxp') 
-                print(param.data)
-                print(str(layer) + "th layer quantization done")
-                print(str(layer) + "th layer MAX = " + str(param.max()) + ", INT_BW = " + str(w_int_bw) + ", FLOAT_BW = " + str(opt.fxp_bw-1-w_int_bw))
-
-                #### SR weight data log ####
-                weight_filename = "./weight/sigmaNet_layer"+str(layer)+"_weight.csv"
-                with open (weight_filename, 'w', newline='') as f:
-                    writer = csv.writer(f)
-                    writer.writerows(np.abs(param.data.cpu().numpy()))
-                layer = layer + 1
-
-
-    else: 
-        layer = 0
-        for name, param in model.named_parameters():
-            if param.dim() != 1:
-                param.requires_grad = False       
-
-                #### SR weight data log ####
-                weight_filename = "./weight/sigmaNet_layer"+str(layer)+"_weight.csv"
-                with open (weight_filename, 'w', newline='') as f:
-                    writer = csv.writer(f)
-                    writer.writerows(np.abs(param.data.cpu().numpy()))
-                layer = layer + 1
-                
-
-
-
-    model.sigma_pruned_net = copy.deepcopy(model.sigma_net)
     print("SR) End of Trainer")
     dataset = NeRFDataset(opt, device=device, type='test')        #Importing dataset in order to get the same camera intrinsics as training
     print("SR) END OF TORCH-NGP SPECIFIC")
@@ -323,11 +265,11 @@ if __name__ == "__main__":
     # low_x, high_x
     # low_y, high_y
     # low_z, high_z
-    # body_lims = np.array([
-    #     [-0.05, 0.05],
-    #     [-0.05, 0.05],
-    #     [-0.02, 0.02]
-    # ])
+    body_lims = np.array([
+        [-0.05, 0.05],
+        [-0.05, 0.05],
+        [-0.02, 0.02]
+    ])
 
     # Discretizations of sample points in x,y,z direction
     body_nbins = [10, 10, 5]
@@ -340,117 +282,23 @@ if __name__ == "__main__":
 
     ### PLANNER CONFIGS
     # X, Y, Z
-    
-
-
     #STONEHENGE
-    # body_lims = np.array([
-    #     [-0.05, 0.05],
-    #     [-0.05, 0.05],
-    #     [-0.02, 0.02]
-    # ])
-    # #---- Path1사용 시 simul함수에서 dh_init 주석처리필요
-    # start_pos = [0.39, -0.67, 0.2]      # Path1 Starting position [x,y,z]
-    # end_pos = [-0.4, 0.55, 0.16]        # Path1 Goal position
-    # points = 1 # dummy
-    # start_pos = [0.359, -0.4, 0.05]      # Path2
-    # end_pos = [0.359, 0.25, 0.05]        # Path2
-    # points = 10 # Path 2 
-    # start_pos = [0.2, 0.5, 0.2]      # Path3
-    # end_pos = [-0.6, -0.7, 0.2]        # Path3
-    # points = 30 # Path 3 
+    start_pos = [0.39, -0.67, 0.2]      # Starting position [x,y,z]
+    #start_pos = [-0.9, -0.67, 0.2]      # Starting position [x,y,z]
+    #start_pos = [-0.9, -0.9, 0.3]      # Starting position [x,y,z]
+    #start_pos = [-0.67, -0.67, 0.2]      # Starting position [x,y,z]
     
-    # #scannet Path1
-    # body_lims = np.array([
-    #     [-0.08, 0.08],
-    #     [-0.08, 0.08],
-    #     [-0.02, 0.02]
-    # ])
-    # start_pos = [0.668, -0.6, 0.2]
-    # end_pos = [-0.62, 0.42, 0.2]
-    # points = 14
-    # start_pos = [0.6, 0.8, 0.2] # Path2
-    # end_pos = [-0.72, 0.05, 0.2] # Path2
-    # points = 14 # Path2
-
-    # #replica Path
-    # body_lims = np.array([
-    #     [-0.08, 0.08],
-    #     [-0.08, 0.08],
-    #     [-0.02, 0.02]
-    # ])
-    # start_pos = [-0.5, 0, 0.3]
-    # end_pos = [0.71, 0, 0.3]
-    # points = 8
+    end_pos = [-0.4, 0.55, 0.16]        # Goal position
+    #end_pos = [0, 0.9, 0.2]        # Goal position
+    #end_pos = [-0.4, 0.55, 0.16]        # Goal position
+    #end_pos = [0, 0.9, 0.3]        # Goal position
     
-
-    ### DH Simulation Option
-    if opt.stonehenge_path1:
-        start_pos = [0.39, -0.67, 0.2]
-        end_pos = [-0.4, 0.55, 0.16]
-        points = 1 # dummy
-        body_lims = np.array([
-            [-0.05, 0.05],
-            [-0.05, 0.05],
-            [-0.02, 0.02]
-        ])
-    elif opt.stonehenge_path2:
-        start_pos = [0.359, -0.4, 0.05]
-        end_pos = [0.359, 0.25, 0.05]
-        points = 10 
-        body_lims = np.array([
-        [-0.05, 0.05],
-        [-0.05, 0.05],
-        [-0.02, 0.02]
-        ])
-    elif opt.stonehenge_path3:
-        start_pos = [0.2, 0.5, 0.2]
-        end_pos = [-0.6, -0.7, 0.2]
-        points = 30
-        body_lims = np.array([
-            [-0.05, 0.05],
-            [-0.05, 0.05],
-            [-0.02, 0.02]
-        ])
-    elif opt.scannet_path1:
-        start_pos = [0.668, -0.6, 0.2]
-        end_pos = [-0.62, 0.42, 0.2]
-        points = 14
-        body_lims = np.array([
-            [-0.08, 0.08],
-            [-0.08, 0.08],
-            [-0.02, 0.02]
-        ])
-    elif opt.scannet_path2:
-        start_pos = [0.6, 0.8, 0.2]
-        end_pos = [-0.72, 0.05, 0.2]
-        points = 14
-        body_lims = np.array([
-            [-0.08, 0.08],
-            [-0.08, 0.08],
-            [-0.02, 0.02]
-        ])
-    elif opt.replica_path:
-        start_pos = [-0.5, 0, 0.3]
-        end_pos = [0.71, 0, 0.3]
-        points = 8
-        body_lims = np.array([
-            [-0.08, 0.08],
-            [-0.08, 0.08],
-            [-0.02, 0.02]
-        ])
-    elif opt.outdoor_path:
-        start_pos = [-0.7, 0.25, 0.175]
-        end_pos = [0.7, 0.25, 0.175]
-        points = 1
-        body_lims = np.array([
-            [-0.05, 0.05],
-            [-0.05, 0.05],
-            [-0.02, 0.02]
-        ])    
-
-
-
+    # start_pos = [-0.09999999999999926,
+    #             -0.8000000000010297,
+    #             0.0999999999999695]
+    # end_pos = [0.10000000000000231,
+    #             0.4999999999996554,
+    #             0.09999999999986946]
 
     # Rotation vector
     start_R = [0., 0., 0.0]     # Starting orientation (Euler angles)
@@ -500,11 +348,7 @@ if __name__ == "__main__":
     'g': g,
     'mass': mass,
     'body': body_lims,
-    'nbins': body_nbins,
-
-    'start_pos' : start_pos, 
-    'end_pos' : end_pos, 
-    'points' : points
+    'nbins': body_nbins
     }
 
     agent_cfg = {
@@ -553,10 +397,7 @@ if __name__ == "__main__":
     rot = torch.tensor([[0., 0., 1.], [1., 0., 0.], [0., 1., 0.]], device=device, dtype=torch.float32)
     
     # Grabs density from NeRF Neural Network
-    density = lambda x: model.density(x.reshape((-1, 3)) @ rot)
     density_fn = lambda x: model.density(x.reshape((-1, 3)) @ rot)['sigma'].reshape(x.shape[:-1])
-    density_prun_fn = lambda x: model.density(x.reshape((-1, 3)) @ rot)['sigma_prun'].reshape(x.shape[:-1])
-
 
     # Rendering from the NeRF functions
     render_fn = lambda rays_o, rays_d: model.render(rays_o, rays_d, staged=True, bg_color=1., perturb=False, **vars(opt))
@@ -564,7 +405,7 @@ if __name__ == "__main__":
 
     # Main loop
     print("SR) Entering Main Loop")
-    simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density, density_fn, density_prun_fn, render_fn, get_rays_fn)
+    simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_fn, get_rays_fn)
     print("SR) Exit Main Loop")
     
     # Visualize trajectories in Blender

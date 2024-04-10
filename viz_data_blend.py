@@ -17,8 +17,14 @@ if __name__ == "__main__":
 
     exp_name = argv[0]
     bevel_depth = argv[1]
+    print("exp_name: "+exp_name)
+    print("bevel_depth: "+bevel_depth)
+    print("bpy.path.abspath: "+bpy.path.abspath(''))
 
+    # basefolder = bpy.path.abspath('//') + f'paths/{exp_name}' SR
     basefolder = bpy.path.abspath('//') + f'paths/{exp_name}'
+    print("base folder: " + basefolder)
+
 
     project = bpy.data.collections.new(f'{exp_name}_visualization')
     bpy.context.scene.collection.children.link(project)
@@ -53,7 +59,9 @@ if __name__ == "__main__":
         return poses[:, :3, -1]
 
     # Visualize the initial trajectory
+    print("Visualize the initial traj")
     init_files = glob.glob(basefolder + '/init_poses/*.json')
+    print("Count num of init files")
     num_init_files = len(init_files)
     latest_init = basefolder + f'/init_poses/{num_init_files-1}.json'
     print(f'Reading {latest_init}')

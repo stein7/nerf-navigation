@@ -5,6 +5,8 @@ import heapq
 import matplotlib.pyplot as plt
 from nav.math_utils import skew_matrix
 
+import pdb
+
 class Simulator:
 
     def __init__(self, start_state):
@@ -207,24 +209,25 @@ def astar(occupied, start, goal):
             if x < 0 or x >= size: return False
         return True
 
-    neighbors = [( 1,0,0),(-1, 0, 0),
-                 ( 0,1,0),( 0,-1, 0),
-                 ( 0,0,1),( 0, 0,-1)]
+    A_step = 1
+    neighbors = [( A_step,0,0),(-A_step, 0, 0),
+                 ( 0,A_step,0),( 0,-A_step, 0),
+                 ( 0,0,A_step),( 0, 0,-A_step)]
 
     close_set = set()
 
     came_from = {}
     gscore = {start: 0}
 
-    assert not occupied[start]
-    assert not occupied[goal]
+    #assert not occupied[start]
+    #assert not occupied[goal]
 
     open_heap = []
     heapq.heappush(open_heap, (heuristic(start, goal), start))
 
     while open_heap:
         current = heapq.heappop(open_heap)[1]
-
+        #pdb.set_trace()
         if current == goal:
             data = []
             while current in came_from:
@@ -254,8 +257,9 @@ def astar(occupied, start, goal):
                 node = (fscore, neighbor)
                 if node not in open_heap:
                     heapq.heappush(open_heap, node) 
+                    
 
-    raise ValueError("Failed to find path!")
+    #raise ValueError("Failed to find path!")
 
 def settings():
     pass

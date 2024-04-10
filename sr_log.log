@@ -1,0 +1,77 @@
+SR) End of Parsing Argument
+SR) Set Cuda FloatTensor
+SR) Start Model Config
+SR) Model Eval Start
+SR) Loss Set
+SR) Trainer Start
+SR) Trainer Constructor
+[INFO] Trainer: ngp | 2023-04-26_14-30-44 | cuda | fp16 | stone_nerf/
+[INFO] #parameters: 12667040
+[INFO] Loading stone_nerf/checkpoints/ngp.pth ...
+checkpoint: stone_nerf/checkpoints/ngp.pth
+end of checkpoint
+[INFO] loaded model.
+[WARN] unexpected keys: ['density_bitfield', 'step_counter']
+[INFO] load at epoch 50, global step 9950
+SR) End of Trainer
+SR) END OF TORCH-NGP SPECIFIC
+SET NERF-NAV PARAM
+SR) Entering Main Loop
+paths/stone_nerf already exists!
+Clear it before continuing? [y/N]:created paths/stone_nerf
+Initialize Planner...
+Initialize A* Planner...
+(1, 1, 13) (10, 19, 13)
+Trajectory Gradient Descent...
+> /home/seryeong/project/24vlsi/nerf-navigation/nav/quad_plot.py(254)get_state_cost()
+-> return 1000*fz**2 + 0.01*torques**4 + colision_prob * 1e6, colision_prob*1e6
+(Pdb) tensor([[[-0.0500, -0.0500, -0.0200],
+         [-0.0500, -0.0500, -0.0100],
+         [-0.0500, -0.0500,  0.0000],
+         ...,
+         [ 0.0500,  0.0500,  0.0000],
+         [ 0.0500,  0.0500,  0.0100],
+         [ 0.0500,  0.0500,  0.0200]],
+
+        [[-0.0500, -0.0500, -0.0200],
+         [-0.0500, -0.0500, -0.0100],
+         [-0.0500, -0.0500,  0.0000],
+         ...,
+         [ 0.0500,  0.0500,  0.0000],
+         [ 0.0500,  0.0500,  0.0100],
+         [ 0.0500,  0.0500,  0.0200]],
+
+        [[-0.0500, -0.0500, -0.0200],
+         [-0.0500, -0.0500, -0.0100],
+         [-0.0500, -0.0500,  0.0000],
+         ...,
+         [ 0.0500,  0.0500,  0.0000],
+         [ 0.0500,  0.0500,  0.0100],
+         [ 0.0500,  0.0500,  0.0200]],
+
+        ...,
+
+        [[-0.0500, -0.0500, -0.0200],
+         [-0.0500, -0.0500, -0.0100],
+         [-0.0500, -0.0500,  0.0000],
+         ...,
+         [ 0.0500,  0.0500,  0.0000],
+         [ 0.0500,  0.0500,  0.0100],
+         [ 0.0500,  0.0500,  0.0200]],
+
+        [[-0.0500, -0.0500, -0.0200],
+         [-0.0500, -0.0500, -0.0100],
+         [-0.0500, -0.0500,  0.0000],
+         ...,
+         [ 0.0500,  0.0500,  0.0000],
+         [ 0.0500,  0.0500,  0.0100],
+         [ 0.0500,  0.0500,  0.0200]],
+
+        [[-0.0500, -0.0500, -0.0200],
+         [-0.0500, -0.0500, -0.0100],
+         [-0.0500, -0.0500,  0.0000],
+         ...,
+         [ 0.0500,  0.0500,  0.0000],
+         [ 0.0500,  0.0500,  0.0100],
+         [ 0.0500,  0.0500,  0.0200]]])
+(Pdb) 

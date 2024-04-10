@@ -8,7 +8,8 @@ from nerf.utils import *
 from functools import partial
 from loss import huber_loss
 
-#torch.autograd.set_detect_anomaly(True)
+import pdb
+torch.autograd.set_detect_anomaly(True)
 
 if __name__ == '__main__':
 
@@ -21,7 +22,7 @@ if __name__ == '__main__':
 
     ### training options
     parser.add_argument('--iters', type=int, default=30000, help="training iters")
-    parser.add_argument('--lr', type=float, default=1e-2, help="initial learning rate")
+    parser.add_argument('--lr', type=float, default=7e-3, help="initial learning rate")
     parser.add_argument('--ckpt', type=str, default='latest')
     parser.add_argument('--num_rays', type=int, default=4096, help="num rays sampled per image for each training step")
     parser.add_argument('--cuda_ray', action='store_true', help="use CUDA raymarching instead of pytorch")
@@ -61,6 +62,15 @@ if __name__ == '__main__':
     parser.add_argument('--clip_text', type=str, default='', help="text input for CLIP guidance")
     parser.add_argument('--rand_pose', type=int, default=-1, help="<0 uses no rand pose, =0 only uses rand pose, >0 sample one rand pose every $ known poses")
 
+    ### SR Quantization
+    parser.add_argument('--fxp', action='store_true', help="use fixed point quantization")
+    parser.add_argument('--fxp_bw', type=int, default=8, help="default fixed point bit width")
+
+    ### SR Simulation Option
+    parser.add_argument('--approx', action='store_true', help="simulate approx simulation")
+
+
+
     opt = parser.parse_args()
 
     if opt.O:
@@ -78,19 +88,22 @@ if __name__ == '__main__':
         from nerf.network_tcnn import NeRFNetwork
     else:
         from nerf.network import NeRFNetwork
-
+    
     print(opt)
     
     seed_everything(opt.seed)
 
     model = NeRFNetwork(
-        encoding="hashgrid",
+        opt=opt,
+        encoding="frequency",
+        num_layers=6,
+        hidden_dim=128,
         bound=opt.bound,
         cuda_ray=opt.cuda_ray,
         density_scale=1,
         min_near=opt.min_near,
         density_thresh=opt.density_thresh,
-        bg_radius=opt.bg_radius,
+        bg_radius=opt.bg_radius
     )
     
     print(model)

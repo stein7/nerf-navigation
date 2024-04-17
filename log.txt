@@ -1,0 +1,22 @@
+SR) End of Parsing Argument
+SR) Set Cuda FloatTensor
+SR) Start Model Config
+SR) Model Eval Start
+SR) Loss Set
+SR) Trainer Start
+SR) Trainer Constructor
+[INFO] Trainer: ngp | 2023-04-18_16-47-57 | cuda | fp16 | stone_nerf/
+[INFO] #parameters: 12667040
+[INFO] Loading stone_nerf/checkpoints/ngp.pth ...
+[INFO] loaded model.
+[WARN] unexpected keys: ['density_bitfield', 'step_counter']
+[INFO] load at epoch 150, global step 29850
+SR) End of Trainer
+SR) END OF TORCH-NGP SPECIFIC
+SET NERF-NAV PARAM
+SR) Entering Main Loop
+paths/stone_nerf already exists!
+Clear it before continuing? [y/N]:created paths/stone_nerf
+Initialize Planner...
+Initialize A* Planner...
+(13, 3, 12) (6, 15, 11)

@@ -1,0 +1,1011 @@
+main_nerf.py:108:        trainer = Trainer('ngp', opt, model, device=device, workspace=opt.workspace, criterion=criterion, fp16=opt.fp16, metrics=metrics, use_checkpoint=opt.ckpt)
+main_nerf.py:135:        trainer = Trainer('ngp', opt, model, device=device, workspace=opt.workspace, optimizer=optimizer, criterion=criterion, ema_decay=0.95, fp16=opt.fp16, lr_scheduler=scheduler, scheduler_update_every_step=True, metrics=metrics, use_checkpoint=opt.ckpt, eval_interval=50)
+Binary file nerf/__pycache__/utils.cpython-36.pyc matches
+Binary file nerf/__pycache__/utils.cpython-38.pyc matches
+Binary file nerf/__pycache__/utils.cpython-37.pyc matches
+nerf/utils.py:257:class Trainer(object):
+nerf/utils.py:358:        self.log("SR) Trainer Constructor")
+nerf/utils.py:359:        self.log(f'[INFO] Trainer: {self.name} | {self.time_stamp} | {self.device} | {"fp16" if self.fp16 else "fp32"} | {self.workspace}')
+log.txt:6:SR) Trainer Start
+log.txt:7:SR) Trainer Constructor
+log.txt:8:[INFO] Trainer: ngp | 2023-04-18_16-47-57 | cuda | fp16 | stone_nerf/
+log.txt:14:SR) End of Trainer
+stone_nerf/log_ngp.txt:1:[INFO] Trainer: ngp | 2022-08-17_16-02-11 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:114:[INFO] Trainer: ngp | 2022-08-17_16-09-51 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:124:[INFO] Trainer: ngp | 2022-08-17_16-11-55 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:134:[INFO] Trainer: ngp | 2022-08-17_16-15-31 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:144:[INFO] Trainer: ngp | 2022-08-17_16-35-03 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:154:[INFO] Trainer: ngp | 2022-08-17_16-35-32 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:164:[INFO] Trainer: ngp | 2022-08-17_16-35-56 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:174:[INFO] Trainer: ngp | 2022-08-17_16-36-52 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:184:[INFO] Trainer: ngp | 2022-08-17_16-37-52 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:194:[INFO] Trainer: ngp | 2022-08-17_16-38-22 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:204:[INFO] Trainer: ngp | 2022-08-17_16-38-59 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:214:[INFO] Trainer: ngp | 2022-08-17_16-39-42 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:224:[INFO] Trainer: ngp | 2022-08-17_16-41-06 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:234:[INFO] Trainer: ngp | 2022-08-17_16-42-23 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:244:[INFO] Trainer: ngp | 2022-08-17_16-43-06 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:254:[INFO] Trainer: ngp | 2022-08-17_16-46-57 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:264:[INFO] Trainer: ngp | 2022-08-17_16-47-27 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:274:[INFO] Trainer: ngp | 2022-08-17_16-48-11 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:284:[INFO] Trainer: ngp | 2022-08-17_16-48-33 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:294:[INFO] Trainer: ngp | 2022-08-17_16-49-27 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:304:[INFO] Trainer: ngp | 2022-08-17_18-16-17 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:314:[INFO] Trainer: ngp | 2022-08-17_18-17-42 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:324:[INFO] Trainer: ngp | 2022-08-17_18-20-44 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:334:[INFO] Trainer: ngp | 2022-08-17_18-21-24 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:344:[INFO] Trainer: ngp | 2022-08-17_18-25-21 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:354:[INFO] Trainer: ngp | 2022-08-17_18-26-25 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:364:[INFO] Trainer: ngp | 2022-08-17_18-27-23 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:374:[INFO] Trainer: ngp | 2022-08-17_18-29-31 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:384:[INFO] Trainer: ngp | 2022-08-17_18-29-56 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:394:[INFO] Trainer: ngp | 2022-08-17_18-31-17 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:404:[INFO] Trainer: ngp | 2022-08-17_18-31-39 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:414:[INFO] Trainer: ngp | 2022-08-17_18-32-21 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:424:[INFO] Trainer: ngp | 2022-08-17_18-32-51 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:434:[INFO] Trainer: ngp | 2022-08-17_18-33-38 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:444:[INFO] Trainer: ngp | 2022-08-17_18-34-45 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:454:[INFO] Trainer: ngp | 2022-08-17_18-35-21 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:464:[INFO] Trainer: ngp | 2022-08-17_18-36-36 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:474:[INFO] Trainer: ngp | 2022-08-17_18-37-10 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:484:[INFO] Trainer: ngp | 2022-08-17_18-40-29 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:494:[INFO] Trainer: ngp | 2022-08-17_18-41-34 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:504:[INFO] Trainer: ngp | 2022-08-17_18-42-24 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:514:[INFO] Trainer: ngp | 2022-08-17_18-44-21 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:524:[INFO] Trainer: ngp | 2022-08-17_18-54-29 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:534:[INFO] Trainer: ngp | 2022-08-17_18-57-16 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:544:[INFO] Trainer: ngp | 2022-08-17_19-00-26 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:554:[INFO] Trainer: ngp | 2022-08-17_19-01-01 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:564:[INFO] Trainer: ngp | 2022-08-17_19-02-23 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:574:[INFO] Trainer: ngp | 2022-08-17_19-04-48 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:584:[INFO] Trainer: ngp | 2022-08-17_19-05-51 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:594:[INFO] Trainer: ngp | 2022-08-17_19-10-07 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:604:[INFO] Trainer: ngp | 2022-08-17_19-11-58 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:614:[INFO] Trainer: ngp | 2022-08-17_19-13-24 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:624:[INFO] Trainer: ngp | 2022-08-17_19-16-31 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:634:[INFO] Trainer: ngp | 2022-08-17_19-18-54 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:644:[INFO] Trainer: ngp | 2022-08-17_19-24-07 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:654:[INFO] Trainer: ngp | 2022-08-17_19-25-22 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:664:[INFO] Trainer: ngp | 2022-08-17_19-27-58 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:674:[INFO] Trainer: ngp | 2022-08-17_19-29-41 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:684:[INFO] Trainer: ngp | 2022-08-17_19-30-51 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:694:[INFO] Trainer: ngp | 2022-08-17_19-32-01 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:704:[INFO] Trainer: ngp | 2022-08-17_20-57-58 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:714:[INFO] Trainer: ngp | 2022-08-17_20-59-26 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:724:[INFO] Trainer: ngp | 2022-08-17_21-03-48 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:734:[INFO] Trainer: ngp | 2022-08-17_21-07-51 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:744:[INFO] Trainer: ngp | 2022-08-17_21-09-28 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:754:[INFO] Trainer: ngp | 2022-08-17_21-12-10 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:764:[INFO] Trainer: ngp | 2022-08-17_21-14-16 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:774:[INFO] Trainer: ngp | 2022-08-17_21-15-53 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:784:[INFO] Trainer: ngp | 2022-08-17_21-17-41 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:794:[INFO] Trainer: ngp | 2022-08-17_21-18-03 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:804:[INFO] Trainer: ngp | 2022-08-17_21-18-47 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:814:[INFO] Trainer: ngp | 2022-08-17_21-19-15 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:824:[INFO] Trainer: ngp | 2022-08-17_21-20-43 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:834:[INFO] Trainer: ngp | 2022-08-17_21-22-22 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:844:[INFO] Trainer: ngp | 2022-08-17_21-22-55 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:854:[INFO] Trainer: ngp | 2022-08-17_21-24-28 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:864:[INFO] Trainer: ngp | 2022-08-17_21-25-09 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:874:[INFO] Trainer: ngp | 2022-08-17_21-26-26 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:884:[INFO] Trainer: ngp | 2022-08-17_21-27-11 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:894:[INFO] Trainer: ngp | 2022-08-17_21-28-03 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:904:[INFO] Trainer: ngp | 2022-08-17_21-28-36 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:914:[INFO] Trainer: ngp | 2022-08-17_21-29-47 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:924:[INFO] Trainer: ngp | 2022-08-17_21-32-00 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:934:[INFO] Trainer: ngp | 2022-08-17_21-32-18 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:944:[INFO] Trainer: ngp | 2022-08-17_21-36-38 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:954:[INFO] Trainer: ngp | 2022-08-17_21-37-24 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:964:[INFO] Trainer: ngp | 2022-08-17_21-39-34 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:973:[INFO] Trainer: ngp | 2022-08-17_21-43-46 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:983:[INFO] Trainer: ngp | 2022-08-17_21-44-22 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:993:[INFO] Trainer: ngp | 2022-08-17_21-46-52 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1003:[INFO] Trainer: ngp | 2022-08-17_21-49-37 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1013:[INFO] Trainer: ngp | 2022-08-17_22-03-05 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1023:[INFO] Trainer: ngp | 2022-08-17_22-13-18 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1033:[INFO] Trainer: ngp | 2022-08-17_22-14-12 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1043:[INFO] Trainer: ngp | 2022-08-17_22-15-22 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1053:[INFO] Trainer: ngp | 2022-08-17_22-16-54 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1063:[INFO] Trainer: ngp | 2022-08-17_22-17-35 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1073:[INFO] Trainer: ngp | 2022-08-17_22-18-14 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1083:[INFO] Trainer: ngp | 2022-08-17_22-18-55 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1093:[INFO] Trainer: ngp | 2022-08-17_22-19-41 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1103:[INFO] Trainer: ngp | 2022-08-17_22-20-13 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1113:[INFO] Trainer: ngp | 2022-08-17_22-24-06 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1123:[INFO] Trainer: ngp | 2022-08-17_22-24-27 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1133:[INFO] Trainer: ngp | 2022-08-17_22-25-28 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1143:[INFO] Trainer: ngp | 2022-08-17_22-29-52 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1153:[INFO] Trainer: ngp | 2022-08-17_22-31-13 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1163:[INFO] Trainer: ngp | 2022-08-17_22-31-55 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1173:[INFO] Trainer: ngp | 2022-08-17_22-32-26 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1183:[INFO] Trainer: ngp | 2022-08-17_22-32-49 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1193:[INFO] Trainer: ngp | 2022-08-17_22-33-08 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1203:[INFO] Trainer: ngp | 2022-08-17_22-33-37 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1213:[INFO] Trainer: ngp | 2022-08-17_22-34-09 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1223:[INFO] Trainer: ngp | 2022-08-17_22-35-48 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1233:[INFO] Trainer: ngp | 2022-08-17_22-38-22 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1243:[INFO] Trainer: ngp | 2022-08-17_22-41-47 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1253:[INFO] Trainer: ngp | 2022-08-17_22-43-14 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1263:[INFO] Trainer: ngp | 2022-08-17_22-43-30 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1273:[INFO] Trainer: ngp | 2022-08-17_22-43-47 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1283:[INFO] Trainer: ngp | 2022-08-17_22-45-29 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1293:[INFO] Trainer: ngp | 2022-08-17_22-49-35 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1303:[INFO] Trainer: ngp | 2022-08-17_22-49-56 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1313:[INFO] Trainer: ngp | 2022-08-17_22-50-46 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1323:[INFO] Trainer: ngp | 2022-08-17_22-51-26 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1333:[INFO] Trainer: ngp | 2022-08-17_22-52-33 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1343:[INFO] Trainer: ngp | 2022-08-17_22-53-04 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1353:[INFO] Trainer: ngp | 2022-08-17_22-57-32 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1363:[INFO] Trainer: ngp | 2022-08-17_22-58-26 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1373:[INFO] Trainer: ngp | 2022-08-17_22-58-52 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1383:[INFO] Trainer: ngp | 2022-08-17_22-59-32 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1393:[INFO] Trainer: ngp | 2022-08-17_22-59-51 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1403:[INFO] Trainer: ngp | 2022-08-17_23-01-28 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1413:[INFO] Trainer: ngp | 2022-08-17_23-02-01 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1423:[INFO] Trainer: ngp | 2022-08-17_23-02-55 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1433:[INFO] Trainer: ngp | 2022-08-18_10-50-52 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1443:[INFO] Trainer: ngp | 2022-08-18_12-15-58 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1453:[INFO] Trainer: ngp | 2022-08-18_12-16-27 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1463:[INFO] Trainer: ngp | 2022-08-18_12-17-44 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1473:[INFO] Trainer: ngp | 2022-08-18_12-18-09 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1483:[INFO] Trainer: ngp | 2022-08-18_12-18-43 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1493:[INFO] Trainer: ngp | 2022-08-18_12-19-17 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1503:[INFO] Trainer: ngp | 2022-08-18_12-20-15 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1513:[INFO] Trainer: ngp | 2022-08-18_12-26-52 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1523:[INFO] Trainer: ngp | 2022-08-18_12-30-04 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1533:[INFO] Trainer: ngp | 2022-08-18_12-31-09 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1543:[INFO] Trainer: ngp | 2022-08-18_12-32-01 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1553:[INFO] Trainer: ngp | 2022-08-18_12-35-02 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1563:[INFO] Trainer: ngp | 2022-08-18_12-37-18 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1573:[INFO] Trainer: ngp | 2022-08-18_12-38-13 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1584:[INFO] Trainer: ngp | 2022-08-18_12-41-58 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1595:[INFO] Trainer: ngp | 2022-08-18_12-42-06 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1605:[INFO] Trainer: ngp | 2022-08-18_12-43-59 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1615:[INFO] Trainer: ngp | 2022-08-18_12-44-27 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1625:[INFO] Trainer: ngp | 2022-08-18_12-49-10 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1635:[INFO] Trainer: ngp | 2022-08-18_12-53-16 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1645:[INFO] Trainer: ngp | 2022-08-18_12-53-39 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1655:[INFO] Trainer: ngp | 2022-08-18_12-54-32 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1665:[INFO] Trainer: ngp | 2022-08-18_12-54-45 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1675:[INFO] Trainer: ngp | 2022-08-18_12-55-20 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1685:[INFO] Trainer: ngp | 2022-08-18_12-55-52 | cuda | fp32 | stone_nerf
+stone_nerf/log_ngp.txt:1695:[INFO] Trainer: ngp | 2022-08-18_12-56-18 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1704:[INFO] Trainer: ngp | 2022-08-18_12-56-35 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1714:[INFO] Trainer: ngp | 2022-08-18_12-59-03 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1724:[INFO] Trainer: ngp | 2022-08-18_12-59-25 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1734:[INFO] Trainer: ngp | 2022-08-18_13-05-39 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1744:[INFO] Trainer: ngp | 2022-08-18_13-12-39 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1754:[INFO] Trainer: ngp | 2022-08-18_13-13-17 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1764:[INFO] Trainer: ngp | 2022-08-18_13-14-49 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1774:[INFO] Trainer: ngp | 2022-08-18_13-15-37 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1784:[INFO] Trainer: ngp | 2022-08-18_13-16-14 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1794:[INFO] Trainer: ngp | 2022-08-18_13-16-38 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1804:[INFO] Trainer: ngp | 2022-08-18_13-18-55 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1814:[INFO] Trainer: ngp | 2022-08-18_13-20-34 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1824:[INFO] Trainer: ngp | 2022-08-18_13-21-43 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1834:[INFO] Trainer: ngp | 2022-08-18_13-24-57 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1844:[INFO] Trainer: ngp | 2022-08-18_13-25-45 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1854:[INFO] Trainer: ngp | 2022-08-18_13-28-43 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1864:[INFO] Trainer: ngp | 2022-08-18_13-30-55 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1874:[INFO] Trainer: ngp | 2022-08-18_13-32-47 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1884:[INFO] Trainer: ngp | 2022-08-18_13-35-55 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1893:[INFO] Trainer: ngp | 2022-08-18_13-36-20 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1902:[INFO] Trainer: ngp | 2022-08-18_13-37-12 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1911:[INFO] Trainer: ngp | 2022-08-18_13-38-11 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1921:[INFO] Trainer: ngp | 2022-08-18_13-38-46 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1931:[INFO] Trainer: ngp | 2022-08-18_13-39-48 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1941:[INFO] Trainer: ngp | 2022-08-20_16-36-25 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1951:[INFO] Trainer: ngp | 2022-08-20_16-37-37 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1961:[INFO] Trainer: ngp | 2022-08-20_16-41-22 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1971:[INFO] Trainer: ngp | 2022-08-20_16-41-57 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1981:[INFO] Trainer: ngp | 2022-08-20_16-42-55 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:1991:[INFO] Trainer: ngp | 2022-08-20_16-43-48 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2001:[INFO] Trainer: ngp | 2022-08-20_16-45-08 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2011:[INFO] Trainer: ngp | 2022-08-20_16-46-45 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2021:[INFO] Trainer: ngp | 2022-08-20_16-47-44 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2031:[INFO] Trainer: ngp | 2022-08-20_16-48-22 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2041:[INFO] Trainer: ngp | 2022-08-20_16-55-15 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2051:[INFO] Trainer: ngp | 2022-08-20_16-55-50 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2061:[INFO] Trainer: ngp | 2022-08-20_16-56-46 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2071:[INFO] Trainer: ngp | 2022-08-20_16-57-12 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2081:[INFO] Trainer: ngp | 2022-08-20_16-59-41 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2091:[INFO] Trainer: ngp | 2022-08-20_17-00-13 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2101:[INFO] Trainer: ngp | 2022-08-20_17-01-04 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2111:[INFO] Trainer: ngp | 2022-08-20_17-01-30 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2121:[INFO] Trainer: ngp | 2022-08-20_17-04-49 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2131:[INFO] Trainer: ngp | 2022-08-20_17-19-55 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2141:[INFO] Trainer: ngp | 2022-08-20_17-21-41 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2151:[INFO] Trainer: ngp | 2022-08-20_17-22-21 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2161:[INFO] Trainer: ngp | 2022-08-20_17-23-02 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2171:[INFO] Trainer: ngp | 2022-08-20_17-27-19 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2181:[INFO] Trainer: ngp | 2022-08-20_17-31-28 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2191:[INFO] Trainer: ngp | 2022-08-20_17-32-05 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2201:[INFO] Trainer: ngp | 2022-08-20_17-33-01 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2211:[INFO] Trainer: ngp | 2022-08-20_17-36-00 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2221:[INFO] Trainer: ngp | 2022-08-20_17-37-27 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2231:[INFO] Trainer: ngp | 2022-08-20_22-16-19 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2241:[INFO] Trainer: ngp | 2022-08-20_22-17-13 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2251:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2252:[INFO] Trainer: ngp | 2023-04-19_12-12-54 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2255:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2256:[INFO] Trainer: ngp | 2023-04-19_12-13-46 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2259:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2260:[INFO] Trainer: ngp | 2023-04-19_12-14-49 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2263:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2264:[INFO] Trainer: ngp | 2023-04-19_12-16-01 | cuda | fp16 | ./stone_nerf/
+stone_nerf/log_ngp.txt:2267:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2268:[INFO] Trainer: ngp | 2023-04-19_12-17-51 | cuda | fp16 | ./stone_nerf/
+stone_nerf/log_ngp.txt:2271:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2272:[INFO] Trainer: ngp | 2023-04-19_12-23-03 | cuda | fp16 | ./stone_nerf/
+stone_nerf/log_ngp.txt:2275:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2276:[INFO] Trainer: ngp | 2023-04-19_12-25-34 | cuda | fp16 | ./stone_nerf/
+stone_nerf/log_ngp.txt:2279:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2280:[INFO] Trainer: ngp | 2023-04-19_12-27-02 | cuda | fp16 | ./stone_nerf/
+stone_nerf/log_ngp.txt:2286:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2287:[INFO] Trainer: ngp | 2023-04-19_12-32-27 | cuda | fp16 | ./stone_nerf/
+stone_nerf/log_ngp.txt:2293:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2294:[INFO] Trainer: ngp | 2023-04-19_12-34-07 | cuda | fp16 | ./stone_nerf/
+stone_nerf/log_ngp.txt:2300:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2301:[INFO] Trainer: ngp | 2023-04-19_12-37-13 | cuda | fp16 | ./stone_nerf/
+stone_nerf/log_ngp.txt:2307:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2308:[INFO] Trainer: ngp | 2023-04-19_12-39-09 | cuda | fp16 | ./stone_nerf/
+stone_nerf/log_ngp.txt:2314:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2315:[INFO] Trainer: ngp | 2023-04-19_12-41-30 | cuda | fp16 | ./stone_nerf/
+stone_nerf/log_ngp.txt:2321:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2322:[INFO] Trainer: ngp | 2023-04-19_12-45-05 | cuda | fp16 | ./stone_nerf/
+stone_nerf/log_ngp.txt:2328:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2329:[INFO] Trainer: ngp | 2023-04-19_12-50-20 | cuda | fp16 | ./stone_nerf/
+stone_nerf/log_ngp.txt:2335:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2336:[INFO] Trainer: ngp | 2023-04-19_12-52-01 | cuda | fp16 | ./stone_nerf/
+stone_nerf/log_ngp.txt:2342:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2343:[INFO] Trainer: ngp | 2023-04-19_13-37-32 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2346:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2347:[INFO] Trainer: ngp | 2023-04-19_13-38-36 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2353:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2354:[INFO] Trainer: ngp | 2023-04-19_13-41-13 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2360:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2361:[INFO] Trainer: ngp | 2023-04-19_14-25-54 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2367:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2368:[INFO] Trainer: ngp | 2023-04-19_15-10-37 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2374:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2375:[INFO] Trainer: ngp | 2023-04-19_15-12-36 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2381:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2382:[INFO] Trainer: ngp | 2023-04-19_15-31-05 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2388:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2389:[INFO] Trainer: ngp | 2023-04-19_15-57-20 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2395:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2396:[INFO] Trainer: ngp | 2023-04-19_16-03-56 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2402:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2403:[INFO] Trainer: ngp | 2023-04-19_16-56-13 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2409:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2410:[INFO] Trainer: ngp | 2023-04-19_16-59-09 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2416:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2417:[INFO] Trainer: ngp | 2023-04-19_17-03-04 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2423:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2424:[INFO] Trainer: ngp | 2023-04-19_18-25-38 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2430:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2431:[INFO] Trainer: ngp | 2023-04-19_18-27-47 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2437:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2438:[INFO] Trainer: ngp | 2023-04-19_18-42-17 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2444:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2445:[INFO] Trainer: ngp | 2023-04-20_00-45-16 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2451:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2452:[INFO] Trainer: ngp | 2023-04-20_01-33-26 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2458:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2459:[INFO] Trainer: ngp | 2023-04-20_01-54-19 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2465:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2466:[INFO] Trainer: ngp | 2023-04-20_01-59-59 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2472:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2473:[INFO] Trainer: ngp | 2023-04-20_02-10-23 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2479:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2480:[INFO] Trainer: ngp | 2023-04-20_02-12-26 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2486:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2487:[INFO] Trainer: ngp | 2023-04-20_02-19-03 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2493:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2494:[INFO] Trainer: ngp | 2023-04-20_02-21-03 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2500:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2501:[INFO] Trainer: ngp | 2023-04-20_02-28-11 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2507:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2508:[INFO] Trainer: ngp | 2023-04-20_02-34-14 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2514:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2515:[INFO] Trainer: ngp | 2023-04-20_02-45-55 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2521:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2522:[INFO] Trainer: ngp | 2023-04-20_03-01-45 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2528:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2529:[INFO] Trainer: ngp | 2023-04-20_03-16-55 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2535:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2536:[INFO] Trainer: ngp | 2023-04-20_12-35-17 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2542:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2543:[INFO] Trainer: ngp | 2023-04-20_12-53-32 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2549:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2550:[INFO] Trainer: ngp | 2023-04-25_01-00-44 | cuda | fp16 | stone_nerf
+stone_nerf/log_ngp.txt:2556:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2557:[INFO] Trainer: ngp | 2023-04-26_02-36-28 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2563:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2564:[INFO] Trainer: ngp | 2023-04-26_02-45-23 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2570:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2571:[INFO] Trainer: ngp | 2023-04-26_02-53-20 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2577:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2578:[INFO] Trainer: ngp | 2023-04-26_04-28-57 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2584:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2585:[INFO] Trainer: ngp | 2023-04-26_04-46-22 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2591:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2592:[INFO] Trainer: ngp | 2023-04-26_04-58-47 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2598:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2599:[INFO] Trainer: ngp | 2023-04-26_04-59-32 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2605:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2606:[INFO] Trainer: ngp | 2023-04-26_05-02-43 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2612:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2613:[INFO] Trainer: ngp | 2023-04-26_05-03-39 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2619:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2620:[INFO] Trainer: ngp | 2023-04-26_05-05-04 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2626:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2627:[INFO] Trainer: ngp | 2023-04-26_05-12-01 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2633:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2634:[INFO] Trainer: ngp | 2023-04-26_05-39-09 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2640:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2641:[INFO] Trainer: ngp | 2023-04-26_06-08-57 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2647:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2648:[INFO] Trainer: ngp | 2023-04-26_06-09-53 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2654:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2655:[INFO] Trainer: ngp | 2023-04-26_06-11-17 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2661:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2662:[INFO] Trainer: ngp | 2023-04-26_06-43-34 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2668:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2669:[INFO] Trainer: ngp | 2023-04-26_06-52-51 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2675:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2676:[INFO] Trainer: ngp | 2023-04-26_07-48-00 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2682:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2683:[INFO] Trainer: ngp | 2023-04-26_08-00-45 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2689:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2690:[INFO] Trainer: ngp | 2023-04-26_08-09-21 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2696:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2697:[INFO] Trainer: ngp | 2023-04-26_08-12-03 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2703:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2704:[INFO] Trainer: ngp | 2023-04-26_13-50-50 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2710:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2711:[INFO] Trainer: ngp | 2023-04-26_13-55-14 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2717:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2718:[INFO] Trainer: ngp | 2023-04-26_13-56-40 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2724:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2725:[INFO] Trainer: ngp | 2023-04-26_14-30-44 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2731:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2732:[INFO] Trainer: ngp | 2023-04-26_14-38-24 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2738:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2739:[INFO] Trainer: ngp | 2023-04-26_14-47-17 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2745:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2746:[INFO] Trainer: ngp | 2023-04-26_14-48-56 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2752:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2753:[INFO] Trainer: ngp | 2023-04-26_14-52-33 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2759:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2760:[INFO] Trainer: ngp | 2023-04-26_15-13-11 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2766:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2767:[INFO] Trainer: ngp | 2023-04-27_07-46-50 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2773:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2774:[INFO] Trainer: ngp | 2023-04-27_07-58-58 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2780:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2781:[INFO] Trainer: ngp | 2023-04-27_08-04-40 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2787:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2788:[INFO] Trainer: ngp | 2023-04-27_08-09-29 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2794:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2795:[INFO] Trainer: ngp | 2023-04-27_10-36-46 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2801:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2802:[INFO] Trainer: ngp | 2023-04-27_10-52-22 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2808:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2809:[INFO] Trainer: ngp | 2023-04-27_14-36-16 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2815:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2816:[INFO] Trainer: ngp | 2023-04-27_14-47-59 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2822:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2823:[INFO] Trainer: ngp | 2023-04-27_14-50-01 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2829:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2830:[INFO] Trainer: ngp | 2023-04-27_14-54-14 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2836:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2837:[INFO] Trainer: ngp | 2023-04-27_14-57-02 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2843:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2844:[INFO] Trainer: ngp | 2023-04-27_15-05-14 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2850:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2851:[INFO] Trainer: ngp | 2023-04-27_15-29-38 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2857:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2858:[INFO] Trainer: ngp | 2023-04-27_15-34-33 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2864:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2865:[INFO] Trainer: ngp | 2023-04-27_15-39-45 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2871:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2872:[INFO] Trainer: ngp | 2023-04-27_15-42-46 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2878:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2879:[INFO] Trainer: ngp | 2023-04-27_15-44-07 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2885:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2886:[INFO] Trainer: ngp | 2023-04-27_15-45-48 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2892:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2893:[INFO] Trainer: ngp | 2023-04-27_15-46-38 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2899:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2900:[INFO] Trainer: ngp | 2023-04-27_15-47-15 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2906:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2907:[INFO] Trainer: ngp | 2023-04-27_15-49-34 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2913:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2914:[INFO] Trainer: ngp | 2023-04-27_15-50-57 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2920:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2921:[INFO] Trainer: ngp | 2023-04-27_15-51-35 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2927:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2928:[INFO] Trainer: ngp | 2023-04-27_15-52-11 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2934:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2935:[INFO] Trainer: ngp | 2023-04-27_15-52-56 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2941:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2942:[INFO] Trainer: ngp | 2023-04-27_15-54-40 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2948:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2949:[INFO] Trainer: ngp | 2023-04-27_15-55-29 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2955:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2956:[INFO] Trainer: ngp | 2023-04-27_15-58-22 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2962:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2963:[INFO] Trainer: ngp | 2023-04-27_16-00-54 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2969:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2970:[INFO] Trainer: ngp | 2023-04-27_16-41-05 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2976:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2977:[INFO] Trainer: ngp | 2023-04-27_17-44-09 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2983:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2984:[INFO] Trainer: ngp | 2023-04-27_17-51-11 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2990:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2991:[INFO] Trainer: ngp | 2023-04-27_17-51-56 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:2997:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:2998:[INFO] Trainer: ngp | 2023-04-27_17-52-52 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3004:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3005:[INFO] Trainer: ngp | 2023-04-27_17-53-33 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3011:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3012:[INFO] Trainer: ngp | 2023-04-27_17-54-23 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3018:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3019:[INFO] Trainer: ngp | 2023-04-27_17-55-15 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3025:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3026:[INFO] Trainer: ngp | 2023-04-27_17-56-07 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3032:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3033:[INFO] Trainer: ngp | 2023-04-27_17-57-10 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3039:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3040:[INFO] Trainer: ngp | 2023-04-27_17-57-57 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3046:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3047:[INFO] Trainer: ngp | 2023-04-27_18-03-55 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3053:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3054:[INFO] Trainer: ngp | 2023-04-28_00-29-18 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3060:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3061:[INFO] Trainer: ngp | 2023-04-28_01-35-13 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3067:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3068:[INFO] Trainer: ngp | 2023-04-28_01-37-08 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3074:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3075:[INFO] Trainer: ngp | 2023-04-28_01-41-04 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3081:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3082:[INFO] Trainer: ngp | 2023-04-28_01-43-22 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3088:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3089:[INFO] Trainer: ngp | 2023-04-28_01-46-07 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3095:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3096:[INFO] Trainer: ngp | 2023-04-28_01-48-28 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3102:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3103:[INFO] Trainer: ngp | 2023-04-28_02-00-59 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3109:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3110:[INFO] Trainer: ngp | 2023-04-28_02-03-46 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3116:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3117:[INFO] Trainer: ngp | 2023-04-28_02-10-39 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3123:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3124:[INFO] Trainer: ngp | 2023-04-28_02-14-30 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3130:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3131:[INFO] Trainer: ngp | 2023-04-28_02-16-26 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3137:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3138:[INFO] Trainer: ngp | 2023-04-28_02-18-36 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3144:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3145:[INFO] Trainer: ngp | 2023-04-28_02-26-16 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3151:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3152:[INFO] Trainer: ngp | 2023-04-28_02-27-42 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3158:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3159:[INFO] Trainer: ngp | 2023-04-28_02-29-52 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3165:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3166:[INFO] Trainer: ngp | 2023-04-28_02-40-49 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3172:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3173:[INFO] Trainer: ngp | 2023-04-28_05-40-02 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3179:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3180:[INFO] Trainer: ngp | 2023-04-28_06-22-28 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3186:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3187:[INFO] Trainer: ngp | 2023-04-28_06-46-05 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3193:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3194:[INFO] Trainer: ngp | 2023-04-28_07-15-16 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3200:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3201:[INFO] Trainer: ngp | 2023-04-28_07-34-00 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3207:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3208:[INFO] Trainer: ngp | 2023-04-28_07-35-39 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3214:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3215:[INFO] Trainer: ngp | 2023-04-28_07-41-03 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3221:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3222:[INFO] Trainer: ngp | 2023-04-28_07-45-11 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3228:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3229:[INFO] Trainer: ngp | 2023-04-29_13-48-37 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3235:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3236:[INFO] Trainer: ngp | 2023-04-29_14-22-18 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3242:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3243:[INFO] Trainer: ngp | 2023-04-29_14-25-40 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3249:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3250:[INFO] Trainer: ngp | 2023-04-29_14-26-37 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3256:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3257:[INFO] Trainer: ngp | 2023-04-29_14-37-11 | cuda | fp16 | stone_nerf/
+stone_nerf/log_ngp.txt:3263:SR) Trainer Constructor
+stone_nerf/log_ngp.txt:3264:[INFO] Trainer: ngp | 2023-04-30_12-18-44 | cuda | fp16 | stone_nerf/
+sr_log.log:6:SR) Trainer Start
+sr_log.log:7:SR) Trainer Constructor
+sr_log.log:8:[INFO] Trainer: ngp | 2023-04-26_14-30-44 | cuda | fp16 | stone_nerf/
+sr_log.log:16:SR) End of Trainer
+simulate.py:212:    print("SR) Trainer Start")
+simulate.py:213:    trainer = Trainer('ngp', opt, model, device=device, workspace=opt.workspace, criterion=criterion, fp16=opt.fp16, metrics=metrics, use_checkpoint=opt.ckpt)
+simulate.py:214:    print("SR) End of Trainer")
+sr_log_0507.txt:1:main_nerf.py:108:        trainer = Trainer('ngp', opt, model, device=device, workspace=opt.workspace, criterion=criterion, fp16=opt.fp16, metrics=metrics, use_checkpoint=opt.ckpt)
+sr_log_0507.txt:2:main_nerf.py:135:        trainer = Trainer('ngp', opt, model, device=device, workspace=opt.workspace, optimizer=optimizer, criterion=criterion, ema_decay=0.95, fp16=opt.fp16, lr_scheduler=scheduler, scheduler_update_every_step=True, metrics=metrics, use_checkpoint=opt.ckpt, eval_interval=50)
+sr_log_0507.txt:6:nerf/utils.py:257:class Trainer(object):
+sr_log_0507.txt:7:nerf/utils.py:358:        self.log("SR) Trainer Constructor")
+sr_log_0507.txt:8:nerf/utils.py:359:        self.log(f'[INFO] Trainer: {self.name} | {self.time_stamp} | {self.device} | {"fp16" if self.fp16 else "fp32"} | {self.workspace}')
+sr_log_0507.txt:9:log.txt:6:SR) Trainer Start
+sr_log_0507.txt:10:log.txt:7:SR) Trainer Constructor
+sr_log_0507.txt:11:log.txt:8:[INFO] Trainer: ngp | 2023-04-18_16-47-57 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:12:log.txt:14:SR) End of Trainer
+sr_log_0507.txt:13:stone_nerf/log_ngp.txt:1:[INFO] Trainer: ngp | 2022-08-17_16-02-11 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:14:stone_nerf/log_ngp.txt:114:[INFO] Trainer: ngp | 2022-08-17_16-09-51 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:15:stone_nerf/log_ngp.txt:124:[INFO] Trainer: ngp | 2022-08-17_16-11-55 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:16:stone_nerf/log_ngp.txt:134:[INFO] Trainer: ngp | 2022-08-17_16-15-31 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:17:stone_nerf/log_ngp.txt:144:[INFO] Trainer: ngp | 2022-08-17_16-35-03 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:18:stone_nerf/log_ngp.txt:154:[INFO] Trainer: ngp | 2022-08-17_16-35-32 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:19:stone_nerf/log_ngp.txt:164:[INFO] Trainer: ngp | 2022-08-17_16-35-56 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:20:stone_nerf/log_ngp.txt:174:[INFO] Trainer: ngp | 2022-08-17_16-36-52 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:21:stone_nerf/log_ngp.txt:184:[INFO] Trainer: ngp | 2022-08-17_16-37-52 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:22:stone_nerf/log_ngp.txt:194:[INFO] Trainer: ngp | 2022-08-17_16-38-22 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:23:stone_nerf/log_ngp.txt:204:[INFO] Trainer: ngp | 2022-08-17_16-38-59 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:24:stone_nerf/log_ngp.txt:214:[INFO] Trainer: ngp | 2022-08-17_16-39-42 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:25:stone_nerf/log_ngp.txt:224:[INFO] Trainer: ngp | 2022-08-17_16-41-06 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:26:stone_nerf/log_ngp.txt:234:[INFO] Trainer: ngp | 2022-08-17_16-42-23 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:27:stone_nerf/log_ngp.txt:244:[INFO] Trainer: ngp | 2022-08-17_16-43-06 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:28:stone_nerf/log_ngp.txt:254:[INFO] Trainer: ngp | 2022-08-17_16-46-57 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:29:stone_nerf/log_ngp.txt:264:[INFO] Trainer: ngp | 2022-08-17_16-47-27 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:30:stone_nerf/log_ngp.txt:274:[INFO] Trainer: ngp | 2022-08-17_16-48-11 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:31:stone_nerf/log_ngp.txt:284:[INFO] Trainer: ngp | 2022-08-17_16-48-33 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:32:stone_nerf/log_ngp.txt:294:[INFO] Trainer: ngp | 2022-08-17_16-49-27 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:33:stone_nerf/log_ngp.txt:304:[INFO] Trainer: ngp | 2022-08-17_18-16-17 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:34:stone_nerf/log_ngp.txt:314:[INFO] Trainer: ngp | 2022-08-17_18-17-42 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:35:stone_nerf/log_ngp.txt:324:[INFO] Trainer: ngp | 2022-08-17_18-20-44 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:36:stone_nerf/log_ngp.txt:334:[INFO] Trainer: ngp | 2022-08-17_18-21-24 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:37:stone_nerf/log_ngp.txt:344:[INFO] Trainer: ngp | 2022-08-17_18-25-21 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:38:stone_nerf/log_ngp.txt:354:[INFO] Trainer: ngp | 2022-08-17_18-26-25 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:39:stone_nerf/log_ngp.txt:364:[INFO] Trainer: ngp | 2022-08-17_18-27-23 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:40:stone_nerf/log_ngp.txt:374:[INFO] Trainer: ngp | 2022-08-17_18-29-31 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:41:stone_nerf/log_ngp.txt:384:[INFO] Trainer: ngp | 2022-08-17_18-29-56 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:42:stone_nerf/log_ngp.txt:394:[INFO] Trainer: ngp | 2022-08-17_18-31-17 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:43:stone_nerf/log_ngp.txt:404:[INFO] Trainer: ngp | 2022-08-17_18-31-39 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:44:stone_nerf/log_ngp.txt:414:[INFO] Trainer: ngp | 2022-08-17_18-32-21 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:45:stone_nerf/log_ngp.txt:424:[INFO] Trainer: ngp | 2022-08-17_18-32-51 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:46:stone_nerf/log_ngp.txt:434:[INFO] Trainer: ngp | 2022-08-17_18-33-38 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:47:stone_nerf/log_ngp.txt:444:[INFO] Trainer: ngp | 2022-08-17_18-34-45 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:48:stone_nerf/log_ngp.txt:454:[INFO] Trainer: ngp | 2022-08-17_18-35-21 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:49:stone_nerf/log_ngp.txt:464:[INFO] Trainer: ngp | 2022-08-17_18-36-36 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:50:stone_nerf/log_ngp.txt:474:[INFO] Trainer: ngp | 2022-08-17_18-37-10 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:51:stone_nerf/log_ngp.txt:484:[INFO] Trainer: ngp | 2022-08-17_18-40-29 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:52:stone_nerf/log_ngp.txt:494:[INFO] Trainer: ngp | 2022-08-17_18-41-34 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:53:stone_nerf/log_ngp.txt:504:[INFO] Trainer: ngp | 2022-08-17_18-42-24 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:54:stone_nerf/log_ngp.txt:514:[INFO] Trainer: ngp | 2022-08-17_18-44-21 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:55:stone_nerf/log_ngp.txt:524:[INFO] Trainer: ngp | 2022-08-17_18-54-29 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:56:stone_nerf/log_ngp.txt:534:[INFO] Trainer: ngp | 2022-08-17_18-57-16 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:57:stone_nerf/log_ngp.txt:544:[INFO] Trainer: ngp | 2022-08-17_19-00-26 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:58:stone_nerf/log_ngp.txt:554:[INFO] Trainer: ngp | 2022-08-17_19-01-01 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:59:stone_nerf/log_ngp.txt:564:[INFO] Trainer: ngp | 2022-08-17_19-02-23 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:60:stone_nerf/log_ngp.txt:574:[INFO] Trainer: ngp | 2022-08-17_19-04-48 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:61:stone_nerf/log_ngp.txt:584:[INFO] Trainer: ngp | 2022-08-17_19-05-51 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:62:stone_nerf/log_ngp.txt:594:[INFO] Trainer: ngp | 2022-08-17_19-10-07 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:63:stone_nerf/log_ngp.txt:604:[INFO] Trainer: ngp | 2022-08-17_19-11-58 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:64:stone_nerf/log_ngp.txt:614:[INFO] Trainer: ngp | 2022-08-17_19-13-24 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:65:stone_nerf/log_ngp.txt:624:[INFO] Trainer: ngp | 2022-08-17_19-16-31 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:66:stone_nerf/log_ngp.txt:634:[INFO] Trainer: ngp | 2022-08-17_19-18-54 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:67:stone_nerf/log_ngp.txt:644:[INFO] Trainer: ngp | 2022-08-17_19-24-07 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:68:stone_nerf/log_ngp.txt:654:[INFO] Trainer: ngp | 2022-08-17_19-25-22 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:69:stone_nerf/log_ngp.txt:664:[INFO] Trainer: ngp | 2022-08-17_19-27-58 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:70:stone_nerf/log_ngp.txt:674:[INFO] Trainer: ngp | 2022-08-17_19-29-41 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:71:stone_nerf/log_ngp.txt:684:[INFO] Trainer: ngp | 2022-08-17_19-30-51 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:72:stone_nerf/log_ngp.txt:694:[INFO] Trainer: ngp | 2022-08-17_19-32-01 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:73:stone_nerf/log_ngp.txt:704:[INFO] Trainer: ngp | 2022-08-17_20-57-58 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:74:stone_nerf/log_ngp.txt:714:[INFO] Trainer: ngp | 2022-08-17_20-59-26 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:75:stone_nerf/log_ngp.txt:724:[INFO] Trainer: ngp | 2022-08-17_21-03-48 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:76:stone_nerf/log_ngp.txt:734:[INFO] Trainer: ngp | 2022-08-17_21-07-51 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:77:stone_nerf/log_ngp.txt:744:[INFO] Trainer: ngp | 2022-08-17_21-09-28 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:78:stone_nerf/log_ngp.txt:754:[INFO] Trainer: ngp | 2022-08-17_21-12-10 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:79:stone_nerf/log_ngp.txt:764:[INFO] Trainer: ngp | 2022-08-17_21-14-16 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:80:stone_nerf/log_ngp.txt:774:[INFO] Trainer: ngp | 2022-08-17_21-15-53 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:81:stone_nerf/log_ngp.txt:784:[INFO] Trainer: ngp | 2022-08-17_21-17-41 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:82:stone_nerf/log_ngp.txt:794:[INFO] Trainer: ngp | 2022-08-17_21-18-03 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:83:stone_nerf/log_ngp.txt:804:[INFO] Trainer: ngp | 2022-08-17_21-18-47 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:84:stone_nerf/log_ngp.txt:814:[INFO] Trainer: ngp | 2022-08-17_21-19-15 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:85:stone_nerf/log_ngp.txt:824:[INFO] Trainer: ngp | 2022-08-17_21-20-43 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:86:stone_nerf/log_ngp.txt:834:[INFO] Trainer: ngp | 2022-08-17_21-22-22 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:87:stone_nerf/log_ngp.txt:844:[INFO] Trainer: ngp | 2022-08-17_21-22-55 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:88:stone_nerf/log_ngp.txt:854:[INFO] Trainer: ngp | 2022-08-17_21-24-28 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:89:stone_nerf/log_ngp.txt:864:[INFO] Trainer: ngp | 2022-08-17_21-25-09 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:90:stone_nerf/log_ngp.txt:874:[INFO] Trainer: ngp | 2022-08-17_21-26-26 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:91:stone_nerf/log_ngp.txt:884:[INFO] Trainer: ngp | 2022-08-17_21-27-11 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:92:stone_nerf/log_ngp.txt:894:[INFO] Trainer: ngp | 2022-08-17_21-28-03 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:93:stone_nerf/log_ngp.txt:904:[INFO] Trainer: ngp | 2022-08-17_21-28-36 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:94:stone_nerf/log_ngp.txt:914:[INFO] Trainer: ngp | 2022-08-17_21-29-47 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:95:stone_nerf/log_ngp.txt:924:[INFO] Trainer: ngp | 2022-08-17_21-32-00 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:96:stone_nerf/log_ngp.txt:934:[INFO] Trainer: ngp | 2022-08-17_21-32-18 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:97:stone_nerf/log_ngp.txt:944:[INFO] Trainer: ngp | 2022-08-17_21-36-38 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:98:stone_nerf/log_ngp.txt:954:[INFO] Trainer: ngp | 2022-08-17_21-37-24 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:99:stone_nerf/log_ngp.txt:964:[INFO] Trainer: ngp | 2022-08-17_21-39-34 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:100:stone_nerf/log_ngp.txt:973:[INFO] Trainer: ngp | 2022-08-17_21-43-46 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:101:stone_nerf/log_ngp.txt:983:[INFO] Trainer: ngp | 2022-08-17_21-44-22 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:102:stone_nerf/log_ngp.txt:993:[INFO] Trainer: ngp | 2022-08-17_21-46-52 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:103:stone_nerf/log_ngp.txt:1003:[INFO] Trainer: ngp | 2022-08-17_21-49-37 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:104:stone_nerf/log_ngp.txt:1013:[INFO] Trainer: ngp | 2022-08-17_22-03-05 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:105:stone_nerf/log_ngp.txt:1023:[INFO] Trainer: ngp | 2022-08-17_22-13-18 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:106:stone_nerf/log_ngp.txt:1033:[INFO] Trainer: ngp | 2022-08-17_22-14-12 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:107:stone_nerf/log_ngp.txt:1043:[INFO] Trainer: ngp | 2022-08-17_22-15-22 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:108:stone_nerf/log_ngp.txt:1053:[INFO] Trainer: ngp | 2022-08-17_22-16-54 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:109:stone_nerf/log_ngp.txt:1063:[INFO] Trainer: ngp | 2022-08-17_22-17-35 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:110:stone_nerf/log_ngp.txt:1073:[INFO] Trainer: ngp | 2022-08-17_22-18-14 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:111:stone_nerf/log_ngp.txt:1083:[INFO] Trainer: ngp | 2022-08-17_22-18-55 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:112:stone_nerf/log_ngp.txt:1093:[INFO] Trainer: ngp | 2022-08-17_22-19-41 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:113:stone_nerf/log_ngp.txt:1103:[INFO] Trainer: ngp | 2022-08-17_22-20-13 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:114:stone_nerf/log_ngp.txt:1113:[INFO] Trainer: ngp | 2022-08-17_22-24-06 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:115:stone_nerf/log_ngp.txt:1123:[INFO] Trainer: ngp | 2022-08-17_22-24-27 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:116:stone_nerf/log_ngp.txt:1133:[INFO] Trainer: ngp | 2022-08-17_22-25-28 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:117:stone_nerf/log_ngp.txt:1143:[INFO] Trainer: ngp | 2022-08-17_22-29-52 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:118:stone_nerf/log_ngp.txt:1153:[INFO] Trainer: ngp | 2022-08-17_22-31-13 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:119:stone_nerf/log_ngp.txt:1163:[INFO] Trainer: ngp | 2022-08-17_22-31-55 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:120:stone_nerf/log_ngp.txt:1173:[INFO] Trainer: ngp | 2022-08-17_22-32-26 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:121:stone_nerf/log_ngp.txt:1183:[INFO] Trainer: ngp | 2022-08-17_22-32-49 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:122:stone_nerf/log_ngp.txt:1193:[INFO] Trainer: ngp | 2022-08-17_22-33-08 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:123:stone_nerf/log_ngp.txt:1203:[INFO] Trainer: ngp | 2022-08-17_22-33-37 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:124:stone_nerf/log_ngp.txt:1213:[INFO] Trainer: ngp | 2022-08-17_22-34-09 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:125:stone_nerf/log_ngp.txt:1223:[INFO] Trainer: ngp | 2022-08-17_22-35-48 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:126:stone_nerf/log_ngp.txt:1233:[INFO] Trainer: ngp | 2022-08-17_22-38-22 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:127:stone_nerf/log_ngp.txt:1243:[INFO] Trainer: ngp | 2022-08-17_22-41-47 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:128:stone_nerf/log_ngp.txt:1253:[INFO] Trainer: ngp | 2022-08-17_22-43-14 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:129:stone_nerf/log_ngp.txt:1263:[INFO] Trainer: ngp | 2022-08-17_22-43-30 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:130:stone_nerf/log_ngp.txt:1273:[INFO] Trainer: ngp | 2022-08-17_22-43-47 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:131:stone_nerf/log_ngp.txt:1283:[INFO] Trainer: ngp | 2022-08-17_22-45-29 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:132:stone_nerf/log_ngp.txt:1293:[INFO] Trainer: ngp | 2022-08-17_22-49-35 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:133:stone_nerf/log_ngp.txt:1303:[INFO] Trainer: ngp | 2022-08-17_22-49-56 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:134:stone_nerf/log_ngp.txt:1313:[INFO] Trainer: ngp | 2022-08-17_22-50-46 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:135:stone_nerf/log_ngp.txt:1323:[INFO] Trainer: ngp | 2022-08-17_22-51-26 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:136:stone_nerf/log_ngp.txt:1333:[INFO] Trainer: ngp | 2022-08-17_22-52-33 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:137:stone_nerf/log_ngp.txt:1343:[INFO] Trainer: ngp | 2022-08-17_22-53-04 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:138:stone_nerf/log_ngp.txt:1353:[INFO] Trainer: ngp | 2022-08-17_22-57-32 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:139:stone_nerf/log_ngp.txt:1363:[INFO] Trainer: ngp | 2022-08-17_22-58-26 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:140:stone_nerf/log_ngp.txt:1373:[INFO] Trainer: ngp | 2022-08-17_22-58-52 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:141:stone_nerf/log_ngp.txt:1383:[INFO] Trainer: ngp | 2022-08-17_22-59-32 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:142:stone_nerf/log_ngp.txt:1393:[INFO] Trainer: ngp | 2022-08-17_22-59-51 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:143:stone_nerf/log_ngp.txt:1403:[INFO] Trainer: ngp | 2022-08-17_23-01-28 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:144:stone_nerf/log_ngp.txt:1413:[INFO] Trainer: ngp | 2022-08-17_23-02-01 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:145:stone_nerf/log_ngp.txt:1423:[INFO] Trainer: ngp | 2022-08-17_23-02-55 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:146:stone_nerf/log_ngp.txt:1433:[INFO] Trainer: ngp | 2022-08-18_10-50-52 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:147:stone_nerf/log_ngp.txt:1443:[INFO] Trainer: ngp | 2022-08-18_12-15-58 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:148:stone_nerf/log_ngp.txt:1453:[INFO] Trainer: ngp | 2022-08-18_12-16-27 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:149:stone_nerf/log_ngp.txt:1463:[INFO] Trainer: ngp | 2022-08-18_12-17-44 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:150:stone_nerf/log_ngp.txt:1473:[INFO] Trainer: ngp | 2022-08-18_12-18-09 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:151:stone_nerf/log_ngp.txt:1483:[INFO] Trainer: ngp | 2022-08-18_12-18-43 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:152:stone_nerf/log_ngp.txt:1493:[INFO] Trainer: ngp | 2022-08-18_12-19-17 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:153:stone_nerf/log_ngp.txt:1503:[INFO] Trainer: ngp | 2022-08-18_12-20-15 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:154:stone_nerf/log_ngp.txt:1513:[INFO] Trainer: ngp | 2022-08-18_12-26-52 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:155:stone_nerf/log_ngp.txt:1523:[INFO] Trainer: ngp | 2022-08-18_12-30-04 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:156:stone_nerf/log_ngp.txt:1533:[INFO] Trainer: ngp | 2022-08-18_12-31-09 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:157:stone_nerf/log_ngp.txt:1543:[INFO] Trainer: ngp | 2022-08-18_12-32-01 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:158:stone_nerf/log_ngp.txt:1553:[INFO] Trainer: ngp | 2022-08-18_12-35-02 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:159:stone_nerf/log_ngp.txt:1563:[INFO] Trainer: ngp | 2022-08-18_12-37-18 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:160:stone_nerf/log_ngp.txt:1573:[INFO] Trainer: ngp | 2022-08-18_12-38-13 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:161:stone_nerf/log_ngp.txt:1584:[INFO] Trainer: ngp | 2022-08-18_12-41-58 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:162:stone_nerf/log_ngp.txt:1595:[INFO] Trainer: ngp | 2022-08-18_12-42-06 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:163:stone_nerf/log_ngp.txt:1605:[INFO] Trainer: ngp | 2022-08-18_12-43-59 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:164:stone_nerf/log_ngp.txt:1615:[INFO] Trainer: ngp | 2022-08-18_12-44-27 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:165:stone_nerf/log_ngp.txt:1625:[INFO] Trainer: ngp | 2022-08-18_12-49-10 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:166:stone_nerf/log_ngp.txt:1635:[INFO] Trainer: ngp | 2022-08-18_12-53-16 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:167:stone_nerf/log_ngp.txt:1645:[INFO] Trainer: ngp | 2022-08-18_12-53-39 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:168:stone_nerf/log_ngp.txt:1655:[INFO] Trainer: ngp | 2022-08-18_12-54-32 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:169:stone_nerf/log_ngp.txt:1665:[INFO] Trainer: ngp | 2022-08-18_12-54-45 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:170:stone_nerf/log_ngp.txt:1675:[INFO] Trainer: ngp | 2022-08-18_12-55-20 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:171:stone_nerf/log_ngp.txt:1685:[INFO] Trainer: ngp | 2022-08-18_12-55-52 | cuda | fp32 | stone_nerf
+sr_log_0507.txt:172:stone_nerf/log_ngp.txt:1695:[INFO] Trainer: ngp | 2022-08-18_12-56-18 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:173:stone_nerf/log_ngp.txt:1704:[INFO] Trainer: ngp | 2022-08-18_12-56-35 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:174:stone_nerf/log_ngp.txt:1714:[INFO] Trainer: ngp | 2022-08-18_12-59-03 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:175:stone_nerf/log_ngp.txt:1724:[INFO] Trainer: ngp | 2022-08-18_12-59-25 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:176:stone_nerf/log_ngp.txt:1734:[INFO] Trainer: ngp | 2022-08-18_13-05-39 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:177:stone_nerf/log_ngp.txt:1744:[INFO] Trainer: ngp | 2022-08-18_13-12-39 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:178:stone_nerf/log_ngp.txt:1754:[INFO] Trainer: ngp | 2022-08-18_13-13-17 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:179:stone_nerf/log_ngp.txt:1764:[INFO] Trainer: ngp | 2022-08-18_13-14-49 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:180:stone_nerf/log_ngp.txt:1774:[INFO] Trainer: ngp | 2022-08-18_13-15-37 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:181:stone_nerf/log_ngp.txt:1784:[INFO] Trainer: ngp | 2022-08-18_13-16-14 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:182:stone_nerf/log_ngp.txt:1794:[INFO] Trainer: ngp | 2022-08-18_13-16-38 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:183:stone_nerf/log_ngp.txt:1804:[INFO] Trainer: ngp | 2022-08-18_13-18-55 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:184:stone_nerf/log_ngp.txt:1814:[INFO] Trainer: ngp | 2022-08-18_13-20-34 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:185:stone_nerf/log_ngp.txt:1824:[INFO] Trainer: ngp | 2022-08-18_13-21-43 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:186:stone_nerf/log_ngp.txt:1834:[INFO] Trainer: ngp | 2022-08-18_13-24-57 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:187:stone_nerf/log_ngp.txt:1844:[INFO] Trainer: ngp | 2022-08-18_13-25-45 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:188:stone_nerf/log_ngp.txt:1854:[INFO] Trainer: ngp | 2022-08-18_13-28-43 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:189:stone_nerf/log_ngp.txt:1864:[INFO] Trainer: ngp | 2022-08-18_13-30-55 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:190:stone_nerf/log_ngp.txt:1874:[INFO] Trainer: ngp | 2022-08-18_13-32-47 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:191:stone_nerf/log_ngp.txt:1884:[INFO] Trainer: ngp | 2022-08-18_13-35-55 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:192:stone_nerf/log_ngp.txt:1893:[INFO] Trainer: ngp | 2022-08-18_13-36-20 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:193:stone_nerf/log_ngp.txt:1902:[INFO] Trainer: ngp | 2022-08-18_13-37-12 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:194:stone_nerf/log_ngp.txt:1911:[INFO] Trainer: ngp | 2022-08-18_13-38-11 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:195:stone_nerf/log_ngp.txt:1921:[INFO] Trainer: ngp | 2022-08-18_13-38-46 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:196:stone_nerf/log_ngp.txt:1931:[INFO] Trainer: ngp | 2022-08-18_13-39-48 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:197:stone_nerf/log_ngp.txt:1941:[INFO] Trainer: ngp | 2022-08-20_16-36-25 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:198:stone_nerf/log_ngp.txt:1951:[INFO] Trainer: ngp | 2022-08-20_16-37-37 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:199:stone_nerf/log_ngp.txt:1961:[INFO] Trainer: ngp | 2022-08-20_16-41-22 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:200:stone_nerf/log_ngp.txt:1971:[INFO] Trainer: ngp | 2022-08-20_16-41-57 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:201:stone_nerf/log_ngp.txt:1981:[INFO] Trainer: ngp | 2022-08-20_16-42-55 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:202:stone_nerf/log_ngp.txt:1991:[INFO] Trainer: ngp | 2022-08-20_16-43-48 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:203:stone_nerf/log_ngp.txt:2001:[INFO] Trainer: ngp | 2022-08-20_16-45-08 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:204:stone_nerf/log_ngp.txt:2011:[INFO] Trainer: ngp | 2022-08-20_16-46-45 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:205:stone_nerf/log_ngp.txt:2021:[INFO] Trainer: ngp | 2022-08-20_16-47-44 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:206:stone_nerf/log_ngp.txt:2031:[INFO] Trainer: ngp | 2022-08-20_16-48-22 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:207:stone_nerf/log_ngp.txt:2041:[INFO] Trainer: ngp | 2022-08-20_16-55-15 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:208:stone_nerf/log_ngp.txt:2051:[INFO] Trainer: ngp | 2022-08-20_16-55-50 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:209:stone_nerf/log_ngp.txt:2061:[INFO] Trainer: ngp | 2022-08-20_16-56-46 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:210:stone_nerf/log_ngp.txt:2071:[INFO] Trainer: ngp | 2022-08-20_16-57-12 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:211:stone_nerf/log_ngp.txt:2081:[INFO] Trainer: ngp | 2022-08-20_16-59-41 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:212:stone_nerf/log_ngp.txt:2091:[INFO] Trainer: ngp | 2022-08-20_17-00-13 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:213:stone_nerf/log_ngp.txt:2101:[INFO] Trainer: ngp | 2022-08-20_17-01-04 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:214:stone_nerf/log_ngp.txt:2111:[INFO] Trainer: ngp | 2022-08-20_17-01-30 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:215:stone_nerf/log_ngp.txt:2121:[INFO] Trainer: ngp | 2022-08-20_17-04-49 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:216:stone_nerf/log_ngp.txt:2131:[INFO] Trainer: ngp | 2022-08-20_17-19-55 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:217:stone_nerf/log_ngp.txt:2141:[INFO] Trainer: ngp | 2022-08-20_17-21-41 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:218:stone_nerf/log_ngp.txt:2151:[INFO] Trainer: ngp | 2022-08-20_17-22-21 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:219:stone_nerf/log_ngp.txt:2161:[INFO] Trainer: ngp | 2022-08-20_17-23-02 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:220:stone_nerf/log_ngp.txt:2171:[INFO] Trainer: ngp | 2022-08-20_17-27-19 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:221:stone_nerf/log_ngp.txt:2181:[INFO] Trainer: ngp | 2022-08-20_17-31-28 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:222:stone_nerf/log_ngp.txt:2191:[INFO] Trainer: ngp | 2022-08-20_17-32-05 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:223:stone_nerf/log_ngp.txt:2201:[INFO] Trainer: ngp | 2022-08-20_17-33-01 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:224:stone_nerf/log_ngp.txt:2211:[INFO] Trainer: ngp | 2022-08-20_17-36-00 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:225:stone_nerf/log_ngp.txt:2221:[INFO] Trainer: ngp | 2022-08-20_17-37-27 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:226:stone_nerf/log_ngp.txt:2231:[INFO] Trainer: ngp | 2022-08-20_22-16-19 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:227:stone_nerf/log_ngp.txt:2241:[INFO] Trainer: ngp | 2022-08-20_22-17-13 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:228:stone_nerf/log_ngp.txt:2251:SR) Trainer Constructor
+sr_log_0507.txt:229:stone_nerf/log_ngp.txt:2252:[INFO] Trainer: ngp | 2023-04-19_12-12-54 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:230:stone_nerf/log_ngp.txt:2255:SR) Trainer Constructor
+sr_log_0507.txt:231:stone_nerf/log_ngp.txt:2256:[INFO] Trainer: ngp | 2023-04-19_12-13-46 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:232:stone_nerf/log_ngp.txt:2259:SR) Trainer Constructor
+sr_log_0507.txt:233:stone_nerf/log_ngp.txt:2260:[INFO] Trainer: ngp | 2023-04-19_12-14-49 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:234:stone_nerf/log_ngp.txt:2263:SR) Trainer Constructor
+sr_log_0507.txt:235:stone_nerf/log_ngp.txt:2264:[INFO] Trainer: ngp | 2023-04-19_12-16-01 | cuda | fp16 | ./stone_nerf/
+sr_log_0507.txt:236:stone_nerf/log_ngp.txt:2267:SR) Trainer Constructor
+sr_log_0507.txt:237:stone_nerf/log_ngp.txt:2268:[INFO] Trainer: ngp | 2023-04-19_12-17-51 | cuda | fp16 | ./stone_nerf/
+sr_log_0507.txt:238:stone_nerf/log_ngp.txt:2271:SR) Trainer Constructor
+sr_log_0507.txt:239:stone_nerf/log_ngp.txt:2272:[INFO] Trainer: ngp | 2023-04-19_12-23-03 | cuda | fp16 | ./stone_nerf/
+sr_log_0507.txt:240:stone_nerf/log_ngp.txt:2275:SR) Trainer Constructor
+sr_log_0507.txt:241:stone_nerf/log_ngp.txt:2276:[INFO] Trainer: ngp | 2023-04-19_12-25-34 | cuda | fp16 | ./stone_nerf/
+sr_log_0507.txt:242:stone_nerf/log_ngp.txt:2279:SR) Trainer Constructor
+sr_log_0507.txt:243:stone_nerf/log_ngp.txt:2280:[INFO] Trainer: ngp | 2023-04-19_12-27-02 | cuda | fp16 | ./stone_nerf/
+sr_log_0507.txt:244:stone_nerf/log_ngp.txt:2286:SR) Trainer Constructor
+sr_log_0507.txt:245:stone_nerf/log_ngp.txt:2287:[INFO] Trainer: ngp | 2023-04-19_12-32-27 | cuda | fp16 | ./stone_nerf/
+sr_log_0507.txt:246:stone_nerf/log_ngp.txt:2293:SR) Trainer Constructor
+sr_log_0507.txt:247:stone_nerf/log_ngp.txt:2294:[INFO] Trainer: ngp | 2023-04-19_12-34-07 | cuda | fp16 | ./stone_nerf/
+sr_log_0507.txt:248:stone_nerf/log_ngp.txt:2300:SR) Trainer Constructor
+sr_log_0507.txt:249:stone_nerf/log_ngp.txt:2301:[INFO] Trainer: ngp | 2023-04-19_12-37-13 | cuda | fp16 | ./stone_nerf/
+sr_log_0507.txt:250:stone_nerf/log_ngp.txt:2307:SR) Trainer Constructor
+sr_log_0507.txt:251:stone_nerf/log_ngp.txt:2308:[INFO] Trainer: ngp | 2023-04-19_12-39-09 | cuda | fp16 | ./stone_nerf/
+sr_log_0507.txt:252:stone_nerf/log_ngp.txt:2314:SR) Trainer Constructor
+sr_log_0507.txt:253:stone_nerf/log_ngp.txt:2315:[INFO] Trainer: ngp | 2023-04-19_12-41-30 | cuda | fp16 | ./stone_nerf/
+sr_log_0507.txt:254:stone_nerf/log_ngp.txt:2321:SR) Trainer Constructor
+sr_log_0507.txt:255:stone_nerf/log_ngp.txt:2322:[INFO] Trainer: ngp | 2023-04-19_12-45-05 | cuda | fp16 | ./stone_nerf/
+sr_log_0507.txt:256:stone_nerf/log_ngp.txt:2328:SR) Trainer Constructor
+sr_log_0507.txt:257:stone_nerf/log_ngp.txt:2329:[INFO] Trainer: ngp | 2023-04-19_12-50-20 | cuda | fp16 | ./stone_nerf/
+sr_log_0507.txt:258:stone_nerf/log_ngp.txt:2335:SR) Trainer Constructor
+sr_log_0507.txt:259:stone_nerf/log_ngp.txt:2336:[INFO] Trainer: ngp | 2023-04-19_12-52-01 | cuda | fp16 | ./stone_nerf/
+sr_log_0507.txt:260:stone_nerf/log_ngp.txt:2342:SR) Trainer Constructor
+sr_log_0507.txt:261:stone_nerf/log_ngp.txt:2343:[INFO] Trainer: ngp | 2023-04-19_13-37-32 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:262:stone_nerf/log_ngp.txt:2346:SR) Trainer Constructor
+sr_log_0507.txt:263:stone_nerf/log_ngp.txt:2347:[INFO] Trainer: ngp | 2023-04-19_13-38-36 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:264:stone_nerf/log_ngp.txt:2353:SR) Trainer Constructor
+sr_log_0507.txt:265:stone_nerf/log_ngp.txt:2354:[INFO] Trainer: ngp | 2023-04-19_13-41-13 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:266:stone_nerf/log_ngp.txt:2360:SR) Trainer Constructor
+sr_log_0507.txt:267:stone_nerf/log_ngp.txt:2361:[INFO] Trainer: ngp | 2023-04-19_14-25-54 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:268:stone_nerf/log_ngp.txt:2367:SR) Trainer Constructor
+sr_log_0507.txt:269:stone_nerf/log_ngp.txt:2368:[INFO] Trainer: ngp | 2023-04-19_15-10-37 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:270:stone_nerf/log_ngp.txt:2374:SR) Trainer Constructor
+sr_log_0507.txt:271:stone_nerf/log_ngp.txt:2375:[INFO] Trainer: ngp | 2023-04-19_15-12-36 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:272:stone_nerf/log_ngp.txt:2381:SR) Trainer Constructor
+sr_log_0507.txt:273:stone_nerf/log_ngp.txt:2382:[INFO] Trainer: ngp | 2023-04-19_15-31-05 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:274:stone_nerf/log_ngp.txt:2388:SR) Trainer Constructor
+sr_log_0507.txt:275:stone_nerf/log_ngp.txt:2389:[INFO] Trainer: ngp | 2023-04-19_15-57-20 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:276:stone_nerf/log_ngp.txt:2395:SR) Trainer Constructor
+sr_log_0507.txt:277:stone_nerf/log_ngp.txt:2396:[INFO] Trainer: ngp | 2023-04-19_16-03-56 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:278:stone_nerf/log_ngp.txt:2402:SR) Trainer Constructor
+sr_log_0507.txt:279:stone_nerf/log_ngp.txt:2403:[INFO] Trainer: ngp | 2023-04-19_16-56-13 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:280:stone_nerf/log_ngp.txt:2409:SR) Trainer Constructor
+sr_log_0507.txt:281:stone_nerf/log_ngp.txt:2410:[INFO] Trainer: ngp | 2023-04-19_16-59-09 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:282:stone_nerf/log_ngp.txt:2416:SR) Trainer Constructor
+sr_log_0507.txt:283:stone_nerf/log_ngp.txt:2417:[INFO] Trainer: ngp | 2023-04-19_17-03-04 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:284:stone_nerf/log_ngp.txt:2423:SR) Trainer Constructor
+sr_log_0507.txt:285:stone_nerf/log_ngp.txt:2424:[INFO] Trainer: ngp | 2023-04-19_18-25-38 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:286:stone_nerf/log_ngp.txt:2430:SR) Trainer Constructor
+sr_log_0507.txt:287:stone_nerf/log_ngp.txt:2431:[INFO] Trainer: ngp | 2023-04-19_18-27-47 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:288:stone_nerf/log_ngp.txt:2437:SR) Trainer Constructor
+sr_log_0507.txt:289:stone_nerf/log_ngp.txt:2438:[INFO] Trainer: ngp | 2023-04-19_18-42-17 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:290:stone_nerf/log_ngp.txt:2444:SR) Trainer Constructor
+sr_log_0507.txt:291:stone_nerf/log_ngp.txt:2445:[INFO] Trainer: ngp | 2023-04-20_00-45-16 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:292:stone_nerf/log_ngp.txt:2451:SR) Trainer Constructor
+sr_log_0507.txt:293:stone_nerf/log_ngp.txt:2452:[INFO] Trainer: ngp | 2023-04-20_01-33-26 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:294:stone_nerf/log_ngp.txt:2458:SR) Trainer Constructor
+sr_log_0507.txt:295:stone_nerf/log_ngp.txt:2459:[INFO] Trainer: ngp | 2023-04-20_01-54-19 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:296:stone_nerf/log_ngp.txt:2465:SR) Trainer Constructor
+sr_log_0507.txt:297:stone_nerf/log_ngp.txt:2466:[INFO] Trainer: ngp | 2023-04-20_01-59-59 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:298:stone_nerf/log_ngp.txt:2472:SR) Trainer Constructor
+sr_log_0507.txt:299:stone_nerf/log_ngp.txt:2473:[INFO] Trainer: ngp | 2023-04-20_02-10-23 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:300:stone_nerf/log_ngp.txt:2479:SR) Trainer Constructor
+sr_log_0507.txt:301:stone_nerf/log_ngp.txt:2480:[INFO] Trainer: ngp | 2023-04-20_02-12-26 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:302:stone_nerf/log_ngp.txt:2486:SR) Trainer Constructor
+sr_log_0507.txt:303:stone_nerf/log_ngp.txt:2487:[INFO] Trainer: ngp | 2023-04-20_02-19-03 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:304:stone_nerf/log_ngp.txt:2493:SR) Trainer Constructor
+sr_log_0507.txt:305:stone_nerf/log_ngp.txt:2494:[INFO] Trainer: ngp | 2023-04-20_02-21-03 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:306:stone_nerf/log_ngp.txt:2500:SR) Trainer Constructor
+sr_log_0507.txt:307:stone_nerf/log_ngp.txt:2501:[INFO] Trainer: ngp | 2023-04-20_02-28-11 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:308:stone_nerf/log_ngp.txt:2507:SR) Trainer Constructor
+sr_log_0507.txt:309:stone_nerf/log_ngp.txt:2508:[INFO] Trainer: ngp | 2023-04-20_02-34-14 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:310:stone_nerf/log_ngp.txt:2514:SR) Trainer Constructor
+sr_log_0507.txt:311:stone_nerf/log_ngp.txt:2515:[INFO] Trainer: ngp | 2023-04-20_02-45-55 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:312:stone_nerf/log_ngp.txt:2521:SR) Trainer Constructor
+sr_log_0507.txt:313:stone_nerf/log_ngp.txt:2522:[INFO] Trainer: ngp | 2023-04-20_03-01-45 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:314:stone_nerf/log_ngp.txt:2528:SR) Trainer Constructor
+sr_log_0507.txt:315:stone_nerf/log_ngp.txt:2529:[INFO] Trainer: ngp | 2023-04-20_03-16-55 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:316:stone_nerf/log_ngp.txt:2535:SR) Trainer Constructor
+sr_log_0507.txt:317:stone_nerf/log_ngp.txt:2536:[INFO] Trainer: ngp | 2023-04-20_12-35-17 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:318:stone_nerf/log_ngp.txt:2542:SR) Trainer Constructor
+sr_log_0507.txt:319:stone_nerf/log_ngp.txt:2543:[INFO] Trainer: ngp | 2023-04-20_12-53-32 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:320:stone_nerf/log_ngp.txt:2549:SR) Trainer Constructor
+sr_log_0507.txt:321:stone_nerf/log_ngp.txt:2550:[INFO] Trainer: ngp | 2023-04-25_01-00-44 | cuda | fp16 | stone_nerf
+sr_log_0507.txt:322:stone_nerf/log_ngp.txt:2556:SR) Trainer Constructor
+sr_log_0507.txt:323:stone_nerf/log_ngp.txt:2557:[INFO] Trainer: ngp | 2023-04-26_02-36-28 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:324:stone_nerf/log_ngp.txt:2563:SR) Trainer Constructor
+sr_log_0507.txt:325:stone_nerf/log_ngp.txt:2564:[INFO] Trainer: ngp | 2023-04-26_02-45-23 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:326:stone_nerf/log_ngp.txt:2570:SR) Trainer Constructor
+sr_log_0507.txt:327:stone_nerf/log_ngp.txt:2571:[INFO] Trainer: ngp | 2023-04-26_02-53-20 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:328:stone_nerf/log_ngp.txt:2577:SR) Trainer Constructor
+sr_log_0507.txt:329:stone_nerf/log_ngp.txt:2578:[INFO] Trainer: ngp | 2023-04-26_04-28-57 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:330:stone_nerf/log_ngp.txt:2584:SR) Trainer Constructor
+sr_log_0507.txt:331:stone_nerf/log_ngp.txt:2585:[INFO] Trainer: ngp | 2023-04-26_04-46-22 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:332:stone_nerf/log_ngp.txt:2591:SR) Trainer Constructor
+sr_log_0507.txt:333:stone_nerf/log_ngp.txt:2592:[INFO] Trainer: ngp | 2023-04-26_04-58-47 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:334:stone_nerf/log_ngp.txt:2598:SR) Trainer Constructor
+sr_log_0507.txt:335:stone_nerf/log_ngp.txt:2599:[INFO] Trainer: ngp | 2023-04-26_04-59-32 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:336:stone_nerf/log_ngp.txt:2605:SR) Trainer Constructor
+sr_log_0507.txt:337:stone_nerf/log_ngp.txt:2606:[INFO] Trainer: ngp | 2023-04-26_05-02-43 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:338:stone_nerf/log_ngp.txt:2612:SR) Trainer Constructor
+sr_log_0507.txt:339:stone_nerf/log_ngp.txt:2613:[INFO] Trainer: ngp | 2023-04-26_05-03-39 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:340:stone_nerf/log_ngp.txt:2619:SR) Trainer Constructor
+sr_log_0507.txt:341:stone_nerf/log_ngp.txt:2620:[INFO] Trainer: ngp | 2023-04-26_05-05-04 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:342:stone_nerf/log_ngp.txt:2626:SR) Trainer Constructor
+sr_log_0507.txt:343:stone_nerf/log_ngp.txt:2627:[INFO] Trainer: ngp | 2023-04-26_05-12-01 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:344:stone_nerf/log_ngp.txt:2633:SR) Trainer Constructor
+sr_log_0507.txt:345:stone_nerf/log_ngp.txt:2634:[INFO] Trainer: ngp | 2023-04-26_05-39-09 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:346:stone_nerf/log_ngp.txt:2640:SR) Trainer Constructor
+sr_log_0507.txt:347:stone_nerf/log_ngp.txt:2641:[INFO] Trainer: ngp | 2023-04-26_06-08-57 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:348:stone_nerf/log_ngp.txt:2647:SR) Trainer Constructor
+sr_log_0507.txt:349:stone_nerf/log_ngp.txt:2648:[INFO] Trainer: ngp | 2023-04-26_06-09-53 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:350:stone_nerf/log_ngp.txt:2654:SR) Trainer Constructor
+sr_log_0507.txt:351:stone_nerf/log_ngp.txt:2655:[INFO] Trainer: ngp | 2023-04-26_06-11-17 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:352:stone_nerf/log_ngp.txt:2661:SR) Trainer Constructor
+sr_log_0507.txt:353:stone_nerf/log_ngp.txt:2662:[INFO] Trainer: ngp | 2023-04-26_06-43-34 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:354:stone_nerf/log_ngp.txt:2668:SR) Trainer Constructor
+sr_log_0507.txt:355:stone_nerf/log_ngp.txt:2669:[INFO] Trainer: ngp | 2023-04-26_06-52-51 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:356:stone_nerf/log_ngp.txt:2675:SR) Trainer Constructor
+sr_log_0507.txt:357:stone_nerf/log_ngp.txt:2676:[INFO] Trainer: ngp | 2023-04-26_07-48-00 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:358:stone_nerf/log_ngp.txt:2682:SR) Trainer Constructor
+sr_log_0507.txt:359:stone_nerf/log_ngp.txt:2683:[INFO] Trainer: ngp | 2023-04-26_08-00-45 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:360:stone_nerf/log_ngp.txt:2689:SR) Trainer Constructor
+sr_log_0507.txt:361:stone_nerf/log_ngp.txt:2690:[INFO] Trainer: ngp | 2023-04-26_08-09-21 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:362:stone_nerf/log_ngp.txt:2696:SR) Trainer Constructor
+sr_log_0507.txt:363:stone_nerf/log_ngp.txt:2697:[INFO] Trainer: ngp | 2023-04-26_08-12-03 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:364:stone_nerf/log_ngp.txt:2703:SR) Trainer Constructor
+sr_log_0507.txt:365:stone_nerf/log_ngp.txt:2704:[INFO] Trainer: ngp | 2023-04-26_13-50-50 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:366:stone_nerf/log_ngp.txt:2710:SR) Trainer Constructor
+sr_log_0507.txt:367:stone_nerf/log_ngp.txt:2711:[INFO] Trainer: ngp | 2023-04-26_13-55-14 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:368:stone_nerf/log_ngp.txt:2717:SR) Trainer Constructor
+sr_log_0507.txt:369:stone_nerf/log_ngp.txt:2718:[INFO] Trainer: ngp | 2023-04-26_13-56-40 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:370:stone_nerf/log_ngp.txt:2724:SR) Trainer Constructor
+sr_log_0507.txt:371:stone_nerf/log_ngp.txt:2725:[INFO] Trainer: ngp | 2023-04-26_14-30-44 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:372:stone_nerf/log_ngp.txt:2731:SR) Trainer Constructor
+sr_log_0507.txt:373:stone_nerf/log_ngp.txt:2732:[INFO] Trainer: ngp | 2023-04-26_14-38-24 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:374:stone_nerf/log_ngp.txt:2738:SR) Trainer Constructor
+sr_log_0507.txt:375:stone_nerf/log_ngp.txt:2739:[INFO] Trainer: ngp | 2023-04-26_14-47-17 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:376:stone_nerf/log_ngp.txt:2745:SR) Trainer Constructor
+sr_log_0507.txt:377:stone_nerf/log_ngp.txt:2746:[INFO] Trainer: ngp | 2023-04-26_14-48-56 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:378:stone_nerf/log_ngp.txt:2752:SR) Trainer Constructor
+sr_log_0507.txt:379:stone_nerf/log_ngp.txt:2753:[INFO] Trainer: ngp | 2023-04-26_14-52-33 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:380:stone_nerf/log_ngp.txt:2759:SR) Trainer Constructor
+sr_log_0507.txt:381:stone_nerf/log_ngp.txt:2760:[INFO] Trainer: ngp | 2023-04-26_15-13-11 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:382:stone_nerf/log_ngp.txt:2766:SR) Trainer Constructor
+sr_log_0507.txt:383:stone_nerf/log_ngp.txt:2767:[INFO] Trainer: ngp | 2023-04-27_07-46-50 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:384:stone_nerf/log_ngp.txt:2773:SR) Trainer Constructor
+sr_log_0507.txt:385:stone_nerf/log_ngp.txt:2774:[INFO] Trainer: ngp | 2023-04-27_07-58-58 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:386:stone_nerf/log_ngp.txt:2780:SR) Trainer Constructor
+sr_log_0507.txt:387:stone_nerf/log_ngp.txt:2781:[INFO] Trainer: ngp | 2023-04-27_08-04-40 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:388:stone_nerf/log_ngp.txt:2787:SR) Trainer Constructor
+sr_log_0507.txt:389:stone_nerf/log_ngp.txt:2788:[INFO] Trainer: ngp | 2023-04-27_08-09-29 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:390:stone_nerf/log_ngp.txt:2794:SR) Trainer Constructor
+sr_log_0507.txt:391:stone_nerf/log_ngp.txt:2795:[INFO] Trainer: ngp | 2023-04-27_10-36-46 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:392:stone_nerf/log_ngp.txt:2801:SR) Trainer Constructor
+sr_log_0507.txt:393:stone_nerf/log_ngp.txt:2802:[INFO] Trainer: ngp | 2023-04-27_10-52-22 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:394:stone_nerf/log_ngp.txt:2808:SR) Trainer Constructor
+sr_log_0507.txt:395:stone_nerf/log_ngp.txt:2809:[INFO] Trainer: ngp | 2023-04-27_14-36-16 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:396:stone_nerf/log_ngp.txt:2815:SR) Trainer Constructor
+sr_log_0507.txt:397:stone_nerf/log_ngp.txt:2816:[INFO] Trainer: ngp | 2023-04-27_14-47-59 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:398:stone_nerf/log_ngp.txt:2822:SR) Trainer Constructor
+sr_log_0507.txt:399:stone_nerf/log_ngp.txt:2823:[INFO] Trainer: ngp | 2023-04-27_14-50-01 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:400:stone_nerf/log_ngp.txt:2829:SR) Trainer Constructor
+sr_log_0507.txt:401:stone_nerf/log_ngp.txt:2830:[INFO] Trainer: ngp | 2023-04-27_14-54-14 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:402:stone_nerf/log_ngp.txt:2836:SR) Trainer Constructor
+sr_log_0507.txt:403:stone_nerf/log_ngp.txt:2837:[INFO] Trainer: ngp | 2023-04-27_14-57-02 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:404:stone_nerf/log_ngp.txt:2843:SR) Trainer Constructor
+sr_log_0507.txt:405:stone_nerf/log_ngp.txt:2844:[INFO] Trainer: ngp | 2023-04-27_15-05-14 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:406:stone_nerf/log_ngp.txt:2850:SR) Trainer Constructor
+sr_log_0507.txt:407:stone_nerf/log_ngp.txt:2851:[INFO] Trainer: ngp | 2023-04-27_15-29-38 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:408:stone_nerf/log_ngp.txt:2857:SR) Trainer Constructor
+sr_log_0507.txt:409:stone_nerf/log_ngp.txt:2858:[INFO] Trainer: ngp | 2023-04-27_15-34-33 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:410:stone_nerf/log_ngp.txt:2864:SR) Trainer Constructor
+sr_log_0507.txt:411:stone_nerf/log_ngp.txt:2865:[INFO] Trainer: ngp | 2023-04-27_15-39-45 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:412:stone_nerf/log_ngp.txt:2871:SR) Trainer Constructor
+sr_log_0507.txt:413:stone_nerf/log_ngp.txt:2872:[INFO] Trainer: ngp | 2023-04-27_15-42-46 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:414:stone_nerf/log_ngp.txt:2878:SR) Trainer Constructor
+sr_log_0507.txt:415:stone_nerf/log_ngp.txt:2879:[INFO] Trainer: ngp | 2023-04-27_15-44-07 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:416:stone_nerf/log_ngp.txt:2885:SR) Trainer Constructor
+sr_log_0507.txt:417:stone_nerf/log_ngp.txt:2886:[INFO] Trainer: ngp | 2023-04-27_15-45-48 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:418:stone_nerf/log_ngp.txt:2892:SR) Trainer Constructor
+sr_log_0507.txt:419:stone_nerf/log_ngp.txt:2893:[INFO] Trainer: ngp | 2023-04-27_15-46-38 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:420:stone_nerf/log_ngp.txt:2899:SR) Trainer Constructor
+sr_log_0507.txt:421:stone_nerf/log_ngp.txt:2900:[INFO] Trainer: ngp | 2023-04-27_15-47-15 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:422:stone_nerf/log_ngp.txt:2906:SR) Trainer Constructor
+sr_log_0507.txt:423:stone_nerf/log_ngp.txt:2907:[INFO] Trainer: ngp | 2023-04-27_15-49-34 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:424:stone_nerf/log_ngp.txt:2913:SR) Trainer Constructor
+sr_log_0507.txt:425:stone_nerf/log_ngp.txt:2914:[INFO] Trainer: ngp | 2023-04-27_15-50-57 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:426:stone_nerf/log_ngp.txt:2920:SR) Trainer Constructor
+sr_log_0507.txt:427:stone_nerf/log_ngp.txt:2921:[INFO] Trainer: ngp | 2023-04-27_15-51-35 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:428:stone_nerf/log_ngp.txt:2927:SR) Trainer Constructor
+sr_log_0507.txt:429:stone_nerf/log_ngp.txt:2928:[INFO] Trainer: ngp | 2023-04-27_15-52-11 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:430:stone_nerf/log_ngp.txt:2934:SR) Trainer Constructor
+sr_log_0507.txt:431:stone_nerf/log_ngp.txt:2935:[INFO] Trainer: ngp | 2023-04-27_15-52-56 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:432:stone_nerf/log_ngp.txt:2941:SR) Trainer Constructor
+sr_log_0507.txt:433:stone_nerf/log_ngp.txt:2942:[INFO] Trainer: ngp | 2023-04-27_15-54-40 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:434:stone_nerf/log_ngp.txt:2948:SR) Trainer Constructor
+sr_log_0507.txt:435:stone_nerf/log_ngp.txt:2949:[INFO] Trainer: ngp | 2023-04-27_15-55-29 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:436:stone_nerf/log_ngp.txt:2955:SR) Trainer Constructor
+sr_log_0507.txt:437:stone_nerf/log_ngp.txt:2956:[INFO] Trainer: ngp | 2023-04-27_15-58-22 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:438:stone_nerf/log_ngp.txt:2962:SR) Trainer Constructor
+sr_log_0507.txt:439:stone_nerf/log_ngp.txt:2963:[INFO] Trainer: ngp | 2023-04-27_16-00-54 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:440:stone_nerf/log_ngp.txt:2969:SR) Trainer Constructor
+sr_log_0507.txt:441:stone_nerf/log_ngp.txt:2970:[INFO] Trainer: ngp | 2023-04-27_16-41-05 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:442:stone_nerf/log_ngp.txt:2976:SR) Trainer Constructor
+sr_log_0507.txt:443:stone_nerf/log_ngp.txt:2977:[INFO] Trainer: ngp | 2023-04-27_17-44-09 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:444:stone_nerf/log_ngp.txt:2983:SR) Trainer Constructor
+sr_log_0507.txt:445:stone_nerf/log_ngp.txt:2984:[INFO] Trainer: ngp | 2023-04-27_17-51-11 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:446:stone_nerf/log_ngp.txt:2990:SR) Trainer Constructor
+sr_log_0507.txt:447:stone_nerf/log_ngp.txt:2991:[INFO] Trainer: ngp | 2023-04-27_17-51-56 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:448:stone_nerf/log_ngp.txt:2997:SR) Trainer Constructor
+sr_log_0507.txt:449:stone_nerf/log_ngp.txt:2998:[INFO] Trainer: ngp | 2023-04-27_17-52-52 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:450:stone_nerf/log_ngp.txt:3004:SR) Trainer Constructor
+sr_log_0507.txt:451:stone_nerf/log_ngp.txt:3005:[INFO] Trainer: ngp | 2023-04-27_17-53-33 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:452:stone_nerf/log_ngp.txt:3011:SR) Trainer Constructor
+sr_log_0507.txt:453:stone_nerf/log_ngp.txt:3012:[INFO] Trainer: ngp | 2023-04-27_17-54-23 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:454:stone_nerf/log_ngp.txt:3018:SR) Trainer Constructor
+sr_log_0507.txt:455:stone_nerf/log_ngp.txt:3019:[INFO] Trainer: ngp | 2023-04-27_17-55-15 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:456:stone_nerf/log_ngp.txt:3025:SR) Trainer Constructor
+sr_log_0507.txt:457:stone_nerf/log_ngp.txt:3026:[INFO] Trainer: ngp | 2023-04-27_17-56-07 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:458:stone_nerf/log_ngp.txt:3032:SR) Trainer Constructor
+sr_log_0507.txt:459:stone_nerf/log_ngp.txt:3033:[INFO] Trainer: ngp | 2023-04-27_17-57-10 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:460:stone_nerf/log_ngp.txt:3039:SR) Trainer Constructor
+sr_log_0507.txt:461:stone_nerf/log_ngp.txt:3040:[INFO] Trainer: ngp | 2023-04-27_17-57-57 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:462:stone_nerf/log_ngp.txt:3046:SR) Trainer Constructor
+sr_log_0507.txt:463:stone_nerf/log_ngp.txt:3047:[INFO] Trainer: ngp | 2023-04-27_18-03-55 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:464:stone_nerf/log_ngp.txt:3053:SR) Trainer Constructor
+sr_log_0507.txt:465:stone_nerf/log_ngp.txt:3054:[INFO] Trainer: ngp | 2023-04-28_00-29-18 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:466:stone_nerf/log_ngp.txt:3060:SR) Trainer Constructor
+sr_log_0507.txt:467:stone_nerf/log_ngp.txt:3061:[INFO] Trainer: ngp | 2023-04-28_01-35-13 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:468:stone_nerf/log_ngp.txt:3067:SR) Trainer Constructor
+sr_log_0507.txt:469:stone_nerf/log_ngp.txt:3068:[INFO] Trainer: ngp | 2023-04-28_01-37-08 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:470:stone_nerf/log_ngp.txt:3074:SR) Trainer Constructor
+sr_log_0507.txt:471:stone_nerf/log_ngp.txt:3075:[INFO] Trainer: ngp | 2023-04-28_01-41-04 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:472:stone_nerf/log_ngp.txt:3081:SR) Trainer Constructor
+sr_log_0507.txt:473:stone_nerf/log_ngp.txt:3082:[INFO] Trainer: ngp | 2023-04-28_01-43-22 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:474:stone_nerf/log_ngp.txt:3088:SR) Trainer Constructor
+sr_log_0507.txt:475:stone_nerf/log_ngp.txt:3089:[INFO] Trainer: ngp | 2023-04-28_01-46-07 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:476:stone_nerf/log_ngp.txt:3095:SR) Trainer Constructor
+sr_log_0507.txt:477:stone_nerf/log_ngp.txt:3096:[INFO] Trainer: ngp | 2023-04-28_01-48-28 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:478:stone_nerf/log_ngp.txt:3102:SR) Trainer Constructor
+sr_log_0507.txt:479:stone_nerf/log_ngp.txt:3103:[INFO] Trainer: ngp | 2023-04-28_02-00-59 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:480:stone_nerf/log_ngp.txt:3109:SR) Trainer Constructor
+sr_log_0507.txt:481:stone_nerf/log_ngp.txt:3110:[INFO] Trainer: ngp | 2023-04-28_02-03-46 | cuda | fp16 | stone_nerf/
+sr_log_0507.txt:482:stone_nerf/log_ngp.txt:3116:SR) Trainer Cons

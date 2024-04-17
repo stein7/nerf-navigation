@@ -1,0 +1,10 @@
+Binary file nerf/__pycache__/network.cpython-38.pyc matches
+nerf/network.py:275:                    weight_bin = dec2bin(weight_q.int(), self.opt.w_fxp_bw)
+nerf/network.py:352:                    h_prun_reorder_bin = dec2bin(input_q.int(), self.opt.i_fxp_bw)
+nerf/network.py:437:                        weight_bin = dec2bin(weight_q.int(), self.opt.w_fxp_bw)         ## get binary weight @ weight quantization
+nerf/network.py:463:                        input_bin = dec2bin( input_quantized, self.opt.i_fxp_bw)
+nerf/network.py:1036:def dec2bin(x, bits):
+nerf/network.py:1137:        w_bin = dec2bin( w_q.int(), w_fxp_bw )                                                      # och, ich, 4
+nerf/network.py:1208:                bs_control = dec2bin(x_q_unit[batch].reshape(-1, 8, 4), i_fxp_bw)
+nerf/network.py:1209:                bs_operand = dec2bin(w_q_tiled  , w_fxp_bw)
+nerf/network.py:1254:                        stage2_err_bmap = dec2bin( stage2_err_map.int(), 2 )

@@ -182,7 +182,10 @@ class Agent():
             raise
 
         # Run the capture image script in headless blender
-        subprocess.run(['blender', '-b', self.blend, '-P', self.blend_script, '--', pose_path, img_path])
+        print("blender path: "+str(self.blend))
+        print("blender script: "+str(self.blend_script))
+        subprocess.run(['/home/seryeong/blender-2.92.0-linux64/blender', '-b', self.blend, '-P', self.blend_script, '--', pose_path, img_path])
+
 
         try: 
             img = imageio.imread(img_path)

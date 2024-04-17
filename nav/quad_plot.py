@@ -6,11 +6,19 @@ import json
 from .math_utils import rot_matrix_to_vec
 from .quad_helpers import astar, next_rotation
 
+import pdb
+import csv
+import pandas as pd
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Planner:
-    def __init__(self, start_state, end_state, cfg, density_fn):
+    def __init__(self, start_state, end_state, cfg, density, density_fn, density_prun_fn, density_quant_fn, opt):
         self.nerf = density_fn
+        self.nerf_prun = density_prun_fn
+        self.nerf_quant = density_quant_fn
+        self.nerf_origin = density
+        self.opt = opt
 
         self.cfg                = cfg
         self.T_final            = cfg['T_final']
@@ -52,6 +60,9 @@ class Planner:
 
         self.epoch = 0
 
+        self.init_loss_log = []
+
+
     def full_to_reduced_state(self, state):
         pos = state[:3]
         R = state[6:15].reshape((3,3))
@@ -63,6 +74,7 @@ class Planner:
 
     def a_star_init(self):
         side = 100 #PARAM grid size
+        #side = 10
 
         if self.CHURCH:
             x_linspace = torch.linspace(-2,-1, side)
@@ -76,29 +88,91 @@ class Planner:
             coods = torch.stack( torch.meshgrid( linspace, linspace, linspace ), dim=-1)
 
         kernel_size = 5 # 100/5 = 20. scene size of 2 gives a box size of 2/20 = 0.1 = drone size
-        output = self.nerf(coods)
+       
+        outputs = self.nerf_origin(coods)
+        output = outputs['sigma'].reshape(coods.shape[:-1])                         # batch grouping / input reordering
+        output_prun = outputs['sigma_prun'].reshape(coods.shape[:-1])
+        output_quant = outputs['sigma_quant'].reshape(coods.shape[:-1])
+
+        #print("non-pruned output inference start")
+        #output = self.nerf(coods)
+        #print("non-pruned output inference done")
+        #print("pruned output inference start")
+        #output_prun = self.nerf_prun(coods)
+        #print("pruned output inference done")
+
+
         maxpool = torch.nn.MaxPool3d(kernel_size = kernel_size)
         #PARAM cut off such that neural network outputs zero (pre shifted sigmoid)
-
+        
         # 20, 20, 20
+        #occupied = maxpool(output[None,None,...])[0,0,...] > 10
+        #occupied_prun = maxpool(output_prun[None,None,...])[0,0,...] > 10
+        #occupied_quant = maxpool(output_quant[None,None,...])[0,0,...] > 10
         occupied = maxpool(output[None,None,...])[0,0,...] > 0.3
+        occupied_prun = maxpool(output_prun[None,None,...])[0,0,...] > 0.3
+        occupied_quant = maxpool(output_quant[None,None,...])[0,0,...] > 0.3
+
+        if self.opt.fxp_accuracy:
+            occupancy_bitmap = occupied == occupied_quant
+            print("w = "+ str(self.opt.w_fxp_bw) + ", i = " + str(self.opt.i_fxp_bw) +" occupancy accuracy: ", occupancy_bitmap.sum()/occupied.shape[0]/occupied.shape[1]/occupied.shape[2])
+            pdb.set_trace()
+        #pdb.set_trace()
+
+        #### Save Occupancy Val as csv ####
+        #output_filename = './occupancy_log/a_star_output_log.csv'
+        #occupancy_filename = './occupancy_log/a_star_occupancy_log.csv'
+
+
+        # with open (occupancy_filename, 'w', newline='') as f:
+        #   writer = csv.writer(f)
+        #   writer.writerows(occupied.reshape(8,-1).cpu().numpy())
+        #   torch.save(occupied, './occupancy_log/occupancy.pth')
+
+        #with open (output_filename, 'w', newline='') as f_out:
+        #   writer = csv.writer(f_out)
+        #   writer.writerows(output.reshape(10,-1).cpu().numpy())
+        #   torch.save(output, './occupancy_log/output.pth')
 
         grid_size = side//kernel_size
 
         #convert to index cooredinates
-        start_grid_float = grid_size*(self.start_state[:3] + 1)/2
-        end_grid_float   = grid_size*(self.end_state  [:3] + 1)/2
+        start_grid_float = grid_size*(self.start_state[:3]  + 1)/2
+        end_grid_float   = grid_size*(self.end_state  [:3]  + 1)/2
         start = tuple(int(start_grid_float[i]) for i in range(3) )
         end =   tuple(int(end_grid_float[i]  ) for i in range(3) )
 
         print(start, end)
-        path = astar(occupied, start, end)
 
+        path = astar(occupied, start, end)                                              # 21 elements in A*
+
+        # SR Insterp Waypoints Code
+        path_tensor = torch.tensor(path, dtype = torch.float)
         # convert from index cooredinates
-        squares =  2* (torch.tensor( path, dtype=torch.float)/grid_size) -1
+
+        def lin_interp(path, num):
+            len_init = len(path)
+
+            alpha_init = torch.linspace(0, 1, num+1)
+            
+            res = torch.zeros( (len_init + (num-1)*(len_init-1), 3) )
+            
+            for i in range (len_init-1):
+                alpha_inv, path_cur = torch.meshgrid(1 - alpha_init, path[i])
+                alpha, path_next = torch.meshgrid(alpha_init, path[i+1])
+                insert = (path_cur*alpha_inv + path_next*alpha)[:-1]
+                res[i*num:i*num+num] = insert
+            
+            res[-1] = path[-1]
+            return res
+
+        interp_path = lin_interp(path_tensor, 10)
+
+        #squares =  2* (torch.tensor( interp_path, dtype=torch.float)/grid_size) -1             # 21,3
+        squares =  2* (interp_path.type(torch.float)/grid_size) -1             # 21,3
 
         #adding way
-        states = torch.cat( [squares, torch.zeros( (squares.shape[0], 1) ) ], dim=-1)
+        states = torch.cat( [squares, torch.zeros( (squares.shape[0], 1) ) ], dim=-1)   # 21,4
 
         #prevents weird zero derivative issues
         randomness = torch.normal(mean= 0, std=0.001*torch.ones(states.shape) )
@@ -110,16 +184,18 @@ class Planner:
         # 2 3 4 5 6 7 7
         prev_smooth = torch.cat([states[0,None, :], states[:-1,:]],        dim=0)
         next_smooth = torch.cat([states[1:,:],      states[-1,None, :], ], dim=0)
-        states = (prev_smooth + next_smooth + states)/3
+        states = (prev_smooth + next_smooth + states)/3                                 # 21,4
 
         self.states = states.clone().detach().requires_grad_(True)
+    
+        print("End of A*")
 
     def params(self):
         return [self.initial_accel, self.states]
 
     def calc_everything(self):
 
-        start_pos   = self.start_state[None, 0:3]
+        start_pos   = self.start_state[None, 0:3]                   # 18 len to 3
         start_v     = self.start_state[None, 3:6]
         start_R     = self.start_state[6:15].reshape((1, 3, 3))
         start_omega = self.start_state[None, 15:]
@@ -144,7 +220,7 @@ class Planner:
         after2_next_pos = after_next_pos + after_next_vel * self.dt
     
         # position 2 and 3 are unused - but the atached roations are
-        current_pos = torch.cat( [start_pos, next_pos, after_next_pos, after2_next_pos, self.states[2:, :3], end_pos], dim=0)
+        current_pos = torch.cat( [start_pos, next_pos, after_next_pos, after2_next_pos, self.states[2:, :3], end_pos], dim=0)           #24, 3
 
         prev_pos = current_pos[:-1, :]
         next_pos = current_pos[1: , :]
@@ -228,13 +304,41 @@ class Planner:
         torques = torch.norm(actions[:, 1:], dim=-1).to(device)
 
         # S, B, 3  =  S, _, 3 +      _, B, 3   X    S, _,  3
-        B_body, B_omega = torch.broadcast_tensors(self.robot_body, omega[:,None,:])
+        B_body, B_omega = torch.broadcast_tensors(self.robot_body, omega[:,None,:])         # 24, 500, 3(x,y,z)
         point_vels = vel[:,None,:] + torch.cross(B_body, B_omega, dim=-1)
 
         # S, B
         distance = torch.sum( vel**2 + 1e-5, dim = -1)**0.5
         # S, B
-        density = self.nerf( self.body_to_world(self.robot_body) )**2
+        density = self.nerf( self.body_to_world(self.robot_body) )**2                       # density @ waypoints
+
+        # multiplied by distance to prevent it from just speed tunnelling
+        # S =   S,B * S,_
+        colision_prob = torch.mean(density * distance[:,None], dim = -1) 
+
+        if self.epoch < self.fade_out_epoch:
+            t = torch.linspace(0,1, colision_prob.shape[0])
+            position = self.epoch/self.fade_out_epoch
+            mask = torch.sigmoid(self.fade_out_sharpness * (position - t)).to(device)
+            colision_prob = colision_prob * mask
+
+        #PARAM cost function shaping
+        return 1000*fz**2 + 0.01*torques**4 + colision_prob * 1e6, colision_prob*1e6
+
+    def get_state_cost_quant(self):
+        pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
+
+        fz = actions[:, 0].to(device)
+        torques = torch.norm(actions[:, 1:], dim=-1).to(device)
+
+        # S, B, 3  =  S, _, 3 +      _, B, 3   X    S, _,  3
+        B_body, B_omega = torch.broadcast_tensors(self.robot_body, omega[:,None,:])         # 24, 500, 3(x,y,z)
+        point_vels = vel[:,None,:] + torch.cross(B_body, B_omega, dim=-1)
+
+        # S, B
+        distance = torch.sum( vel**2 + 1e-5, dim = -1)**0.5
+        # S, B
+        density = self.nerf_quant( self.body_to_world(self.robot_body) )**2
 
         # multiplied by distance to prevent it from just speed tunnelling
         # S =   S,B * S,_
@@ -253,17 +357,55 @@ class Planner:
         total_cost, colision_loss  = self.get_state_cost()
         return torch.mean(total_cost)
 
-    def learn_init(self):
-        opt = torch.optim.Adam(self.params(), lr=self.lr, capturable=True)
+    def total_cost_quant(self):
+        total_cost, colision_loss  = self.get_state_cost_quant()
+        return torch.mean(total_cost)
 
+    def learn_init(self):
+        opt = torch.optim.Adam(self.params(), lr=self.lr, capturable=True) 
+
+        cos_sim = []
+        #opt = torch.optim.Adam(self.params(), lr=self.lr)
         try:
             for it in range(self.epochs_init):
                 opt.zero_grad()
                 self.epoch = it
-                loss = self.total_cost()
-                print(it, loss)
+                
+                ##  SR BP Quant
+                loss_quant = self.total_cost_quant()    # sigma_quant_net
+                loss_quant.backward()                   # self.states.grad
+                grad_quant = self.states.grad.nan_to_num(nan=0.0).clone()
+                
+                ## Original BP
+                opt.zero_grad()
+                loss = self.total_cost()        # sigma_net
+                self.init_loss_log.append(loss.item())
+                print(str(it) + " iteration (" +  str(loss.item()) + ")")
                 loss.backward()
+                grad_original = self.states.grad.clone()
+                
+                ## Compare Quant BP & Original BP
+                grad_bitmap = grad_original == grad_quant
+                print("diff grad by quantization: ", grad_bitmap.sum()/grad_bitmap.shape[0]/grad_bitmap.shape[1])
+                
+                ## Get Similarity b/w Quant BP & Original BP
+                cos = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
+                output = cos(grad_original[:,0:3], grad_quant[:, 0:3])
+                
+                output[torch.logical_or( (grad_original[:,0:3].sum(dim=1) == 0), (grad_quant[:,0:3].sum(dim=1) == 0) )] = 1
+
+                sim = output >= 0.8
+                
+                cos_sim.append( sim.sum()/sim.shape[0] )
+                #print("similarity: ", sim.sum()/sim.shape[0])
+                
+                #grad_zero_idx = torch.nonzero(A)
+                
+
                 opt.step()
+                #pdb.set_trace()
+                
+
 
                 save_step = 50
                 if it%save_step == 0:
@@ -273,10 +415,20 @@ class Planner:
                     else:
                         print("Warning: data not saved!")
 
+            #### Save Init Loss Log as csv ####
+            print("similarity: ", sum(cos_sim)/len(cos_sim))
+            pdb.set_trace()
+            filename = './loss_log/init_loss_log.csv'
+            with open(filename, 'w', newline='') as f : 
+                writer = csv.writer(f) 
+                writer.writerow(self.init_loss_log) 
+
+
         except KeyboardInterrupt:
             print("finishing early")
 
     def learn_update(self, iteration):
+        print(iteration," th Learn updating: ", self.epochs_update)
         opt = torch.optim.Adam(self.params(), lr=self.lr, capturable=True)
 
         for it in range(self.epochs_update):
@@ -299,12 +451,17 @@ class Planner:
                 else:
                     print("Warning: data not saved!")
 
+        print("Learned matrix: ", self.states)
+        print("Learned shape: ", self.states.shape)
+
     def update_state(self, measured_state):
         pos, vel, accel, rot_matrix, omega, angular_accel, actions = self.calc_everything()
 
         self.start_state = measured_state
         self.states = self.states[1:, :].detach().requires_grad_(True)
         self.initial_accel = actions[1:3, 0].detach().requires_grad_(True)
+        print("New state : ", self.states)
+        print("New state shape: ", self.states.shape)
         # print(self.initial_accel.shape)
 
     def plot(self, quadplot):
@@ -473,7 +630,7 @@ def main():
     # quadplot = QuadPlot()
     # traj.plot(quadplot)
     # quadplot.show()
-
+    pdb.set_trace()
     traj.learn_init()
 
     traj.save_progress(basefolder / "trajectory.pt")

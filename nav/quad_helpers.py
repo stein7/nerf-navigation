@@ -241,8 +241,8 @@ def astar(occupied, start, goal):
             if not inbounds( neighbor ):
                 continue
 
-            if occupied[neighbor]:
-                continue
+            # if occupied[neighbor]:
+            #     continue
 
             tentative_g_score = gscore[current] + 1
 

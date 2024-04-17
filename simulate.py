@@ -11,6 +11,7 @@ from nerf.provider import NeRFDataset
 
 # Import Helper Classes
 from nav import (Estimator, Agent, Planner, vec_to_rot_matrix, rot_matrix_to_vec)
+import pdb
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -19,6 +20,8 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
     '''
     Main loop that iterates between planning and estimation.
     '''
+
+    
 
     start_state = planner_cfg['start_state']
     end_state = planner_cfg['end_state']
@@ -41,6 +44,19 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
     traj = Planner(start_state, end_state, planner_cfg, density_fn)
 
     traj.basefolder = basefolder
+
+    # start end 사이 linear한 점찍기 
+    start_pos = planner_cfg['start_pos']
+    end_pos = planner_cfg['end_pos']
+    points = planner_cfg['points']
+    traj.dh_init(start_pos, end_pos, points)
+
+    
+    # density 높은 점들에 대해서 optimize
+    traj.dh_learn_init()
+    ####################### ##########################################
+    pdb.set_trace()
+    ####################### ##########################################
 
     # Create a coarse trajectory to initialize the planner by using A*. 
     traj.a_star_init()
@@ -216,8 +232,8 @@ if __name__ == "__main__":
     # low_y, high_y
     # low_z, high_z
     body_lims = np.array([
-        [-0.05, 0.05],
-        [-0.05, 0.05],
+        [-0.08, 0.08],
+        [-0.08, 0.08],
         [-0.02, 0.02]
     ])
 
@@ -229,12 +245,13 @@ if __name__ == "__main__":
     I = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]   # inertia tensor
     path = 'sim_img_cache/'     # Directory where pose and images are exchanged
     blend_file = 'stonehenge.blend'     # Blend file of your scene
-
+    
     ### PLANNER CONFIGS
     # X, Y, Z
     #STONEHENGE
-    start_pos = [0.39, -0.67, 0.2]      # Starting position [x,y,z]
-    end_pos = [-0.4, 0.55, 0.16]        # Goal position
+    start_pos = [0.668, -0.6, 0.2]       # Starting position [x,y,z] [-0.99, -0.80, 0.10]
+    end_pos = [-0.62, 0.42, 0.2]        # Goal position [-0.60, -0.30, 0.10]
+    points = 14                        # middle points
     
     # start_pos = [-0.09999999999999926,
     #             -0.8000000000010297,
@@ -254,7 +271,7 @@ if __name__ == "__main__":
     steps = 20                  # Number of time steps to run simulation
 
     planner_lr = 0.001          # Learning rate when learning a plan
-    epochs_init = 2500          # Num. Gradient descent steps to perform during initial plan
+    epochs_init = 300          # Num. Gradient descent steps to perform during initial plan
     fade_out_epoch = 0
     fade_out_sharpness = 10
     epochs_update = 250         # Num. grad descent steps to perform when replanning
@@ -291,7 +308,11 @@ if __name__ == "__main__":
     'g': g,
     'mass': mass,
     'body': body_lims,
-    'nbins': body_nbins
+    'nbins': body_nbins,
+
+    'start_pos' : start_pos, 
+    'end_pos' : end_pos, 
+    'points' : points
     }
 
     agent_cfg = {

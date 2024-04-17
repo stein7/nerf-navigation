@@ -7,6 +7,7 @@ from nerf.utils import *
 
 from functools import partial
 from loss import huber_loss
+import pdb
 
 #torch.autograd.set_detect_anomaly(True)
 
@@ -61,6 +62,21 @@ if __name__ == '__main__':
     parser.add_argument('--clip_text', type=str, default='', help="text input for CLIP guidance")
     parser.add_argument('--rand_pose', type=int, default=-1, help="<0 uses no rand pose, =0 only uses rand pose, >0 sample one rand pose every $ known poses")
 
+
+    parser.add_argument('--total_path_num', type=int, default=1, help="set total path numbers")
+    parser.add_argument('--a_star_grid', type=int, default=20, help="set a* grid size")
+    parser.add_argument('--random_path', action='store_true', help="set start/end points select policy")
+    parser.add_argument('--start_pos', nargs='*',type=float, default=[-1]*3, help="set start point of path")
+    parser.add_argument('--end_pos', nargs='*',type=float, default=[-1]*3, help="set end point of path")
+    parser.add_argument('--occupancy_th', type=float, default=0.3, help="set occupancy threshold value")
+    parser.add_argument('--cosim_th', type=float, default=0.95, help="set cos sim threshold for deciding num grad selection")
+    parser.add_argument('--tunning_vec_dis', type=float, default=0.03, help="set collision avoidance direction vec dist")
+    parser.add_argument('--bp_tunning_vec_dis', type=float, default=0.02, help="set collision avoidance direction vec dist ONLY BP")
+    parser.add_argument('--a_star_edit', action='store_true', help="volumetric A*")
+
+    parser.add_argument('--compressor', action='store_true', help="volumetric A*")
+    parser.add_argument('--eval_ich_range', action='store_true', help="volumetric A*")
+
     opt = parser.parse_args()
 
     if opt.O:
@@ -85,13 +101,16 @@ if __name__ == '__main__':
 
     model = NeRFNetwork(
         encoding="hashgrid",
+        num_layers=4,
+        hidden_dim=128,
         bound=opt.bound,
         cuda_ray=opt.cuda_ray,
         density_scale=1,
         min_near=opt.min_near,
         density_thresh=opt.density_thresh,
         bg_radius=opt.bg_radius,
-    )
+        opt=opt
+        )
     
     print(model)
 
@@ -132,6 +151,7 @@ if __name__ == '__main__':
 
         metrics = [PSNRMeter(),]
         # metrics.append([LPIPSMeter(device=device))
+        
         trainer = Trainer('ngp', opt, model, device=device, workspace=opt.workspace, optimizer=optimizer, criterion=criterion, ema_decay=0.95, fp16=opt.fp16, lr_scheduler=scheduler, scheduler_update_every_step=True, metrics=metrics, use_checkpoint=opt.ckpt, eval_interval=50)
 
         if opt.gui:

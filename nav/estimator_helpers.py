@@ -6,6 +6,8 @@ import cv2
 import matplotlib.pyplot as plt
 from nav.math_utils import vec_to_rot_matrix, mahalanobis, rot_x, nerf_matrix_to_ngp_torch, nearestPD, calcSE3Err
 
+import pdb
+
 # def mahalanobis(u, v, cov):
 #     delta = u - v
 #     return delta @ torch.inverse(cov) @ delta
@@ -226,7 +228,8 @@ class Estimator():
 
         for k in range(self.iter):
             optimizer.zero_grad()
-            rand_inds = np.random.choice(interest_regions.shape[0], size=self.batch_size, replace=False)
+
+            rand_inds = np.random.choice(interest_regions.shape[0], size=self.batch_size, replace=True)     # SR
             batch = interest_regions[rand_inds]
 
             #pix_losses.append(loss.clone().cpu().detach().numpy().tolist())
@@ -353,7 +356,9 @@ class Estimator():
         #Propagated dynamics. x t|t-1
         #xt should be 12-vector
         self.xt = self.agent.drone_dynamics(self.xt, action)
-        self.action = action.clone().cpu().numpy().tolist()
+        #self.action = action.clone().cpu().numpy().tolist()
+        #self.action = action.clone().detach().cpu().numpy()
+        self.action = action.detach().cpu().numpy().tolist()
 
         #State estimate at t-1 is self.xt. Find jacobian wrt dynamics
         t1 = time.time()

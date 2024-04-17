@@ -31,6 +31,8 @@ from torch_ema import ExponentialMovingAverage
 from packaging import version as pver
 import lpips
 
+import pdb
+
 def custom_meshgrid(*args):
     # ref: https://pytorch.org/docs/stable/generated/torch.meshgrid.html?highlight=meshgrid#torch.meshgrid
     if pver.parse(torch.__version__) < pver.parse('1.10'):
@@ -354,7 +356,8 @@ class Trainer(object):
             self.ckpt_path = os.path.join(self.workspace, 'checkpoints')
             self.best_path = f"{self.ckpt_path}/{self.name}.pth"
             os.makedirs(self.ckpt_path, exist_ok=True)
-            
+        
+        self.log("SR) Trainer Constructor")
         self.log(f'[INFO] Trainer: {self.name} | {self.time_stamp} | {self.device} | {"fp16" if self.fp16 else "fp32"} | {self.workspace}')
         self.log(f'[INFO] #parameters: {sum([p.numel() for p in model.parameters() if p.requires_grad])}')
 
@@ -447,6 +450,9 @@ class Trainer(object):
     
         pred_rgb = outputs['image']
 
+        del outputs
+        torch.cuda.empty_cache()
+
         loss = self.criterion(pred_rgb, gt_rgb).mean(-1) # [B, N, 3] --> [B, N]
 
         # special case for CCNeRF's rank-residual training
@@ -503,7 +509,8 @@ class Trainer(object):
         else:
             gt_rgb = images
         
-        outputs = self.model.render(rays_o, rays_d, staged=True, bg_color=bg_color, perturb=False, **vars(self.opt))
+        with torch.no_grad():
+            outputs = self.model.render(rays_o, rays_d, staged=True, bg_color=bg_color, perturb=False, **vars(self.opt))
 
         pred_rgb = outputs['image'].reshape(B, H, W, 3)
         pred_depth = outputs['depth'].reshape(B, H, W)
@@ -522,7 +529,8 @@ class Trainer(object):
         if bg_color is not None:
             bg_color = bg_color.to(self.device)
 
-        outputs = self.model.render(rays_o, rays_d, staged=True, bg_color=bg_color, perturb=perturb, **vars(self.opt))
+        with torch.no_grad():
+            outputs = self.model.render(rays_o, rays_d, staged=True, bg_color=bg_color, perturb=perturb, **vars(self.opt))
 
         pred_rgb = outputs['image'].reshape(-1, H, W, 3)
         pred_depth = outputs['depth'].reshape(-1, H, W)
@@ -632,10 +640,22 @@ class Trainer(object):
         if write_video:
             all_preds = np.stack(all_preds, axis=0)
             all_preds_depth = np.stack(all_preds_depth, axis=0)
-            imageio.mimwrite(os.path.join(save_path, f'{name}_rgb.mp4'), all_preds, fps=25, quality=8, macro_block_size=1)
-            imageio.mimwrite(os.path.join(save_path, f'{name}_depth.mp4'), all_preds_depth, fps=25, quality=8, macro_block_size=1)
+            #imageio.mimwrite(os.path.join(save_path, f'{name}_rgb.mp4'), all_preds, fps=25, quality=8, macro_block_size=1)
+            out_rgb = cv2.VideoWriter(os.path.join(save_path, f'{name}_rgb.mp4'), fourcc=cv2.VideoWriter_fourcc(*'mp4v'), fps=25, frameSize=(800,800), isColor=True)
+            for frame_rgb in range (all_preds.shape[0]):
+                print(str(frame_rgb)+": "+str(all_preds[frame_rgb].shape)+"th frame saving ...")
+                out_rgb.write(all_preds[frame_rgb])
+            print("\nrgb size: "+str(all_preds.shape))
+            #imageio.mimwrite(os.path.join(save_path, f'{name}_depth.mp4'), all_preds_depth, fps=25, quality=8, macro_block_size=1)
+            out_depth = cv2.VideoWriter(os.path.join(save_path, f'{name}_depth.mp4'), fourcc=cv2.VideoWriter_fourcc(*'mp4v'), fps=25, frameSize=(800,800), isColor=True)
+            print("depth size: "+str(all_preds_depth.shape))
+            for frame in range (all_preds_depth.shape[0]):
+                out_depth.write(all_preds_depth[frame])
+            #cv2.VideoWriter(os.path.join(save_path, f'{name}_depth.mp4'), all_preds_depth, fps=25, (512,512))
 
         self.log(f"==> Finished Test.")
+        out_rgb.release()
+        out_depth.release()
     
     # [GUI] just train for 16 steps, without any other overhead that may slow down rendering.
     def train_gui(self, train_loader, step=16):
@@ -772,11 +792,11 @@ class Trainer(object):
         self.local_step = 0
 
         for data in loader:
-            
+            torch.cuda.empty_cache() 
             # update grid every 16 steps
             if self.model.cuda_ray and self.global_step % self.opt.update_extra_interval == 0:
                 with torch.cuda.amp.autocast(enabled=self.fp16):
-                    self.model.update_extra_state()
+                    self.model.update_extra_state() # SR update density grid: get sigma value in grid
                     
             self.local_step += 1
             self.global_step += 1
@@ -1006,8 +1026,9 @@ class Trainer(object):
             else:
                 self.log("[WARN] No checkpoint found, model randomly initialized.")
                 return
-
+        print("checkpoint: "+checkpoint)
         checkpoint_dict = torch.load(checkpoint, map_location=self.device)
+        print("end of checkpoint")
         
         if 'model' not in checkpoint_dict:
             self.model.load_state_dict(checkpoint_dict)

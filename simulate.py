@@ -9,13 +9,24 @@ import argparse
 from nerf.utils import *
 from nerf.provider import NeRFDataset
 
+import pdb as pdb
+import matplotlib.pyplot as plt
+
+from lib.precision import *
+import math
+
+import csv
+
+import copy
+
+
 # Import Helper Classes
 from nav import (Estimator, Agent, Planner, vec_to_rot_matrix, rot_matrix_to_vec)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 ####################### MAIN LOOP ##########################################
-def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_fn, get_rays_fn):
+def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density, density_fn, density_prun_fn, density_quant_fn, render_fn, get_rays_fn):
     '''
     Main loop that iterates between planning and estimation.
     '''
@@ -37,16 +48,21 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
     (basefolder / "estimator_data").mkdir()
     print("created", basefolder)
   
+    
+    
+    
     # Initialize Planner
-    traj = Planner(start_state, end_state, planner_cfg, density_fn)
+    print("Initialize Planner...")
+    traj = Planner(start_state, end_state, planner_cfg, density, density_fn, density_prun_fn, density_quant_fn, opt)
 
     traj.basefolder = basefolder
 
     # Create a coarse trajectory to initialize the planner by using A*. 
+    print("Initialize A* Planner...")
     traj.a_star_init()
-
     # From the A* initialization, perform gradient descent on the flat states of agent to get a trajectory
     # that minimizes collision and control effort.
+    print("Trajectory Gradient Descent...")
     traj.learn_init()
 
     #Change start state from 18-vector (with rotation as a rotation matrix) to 12 vector (with rotation as a rotation vector)
@@ -71,7 +87,7 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
         for iter in trange(steps):
             # In MPC style, take the next action recommended from the planner
             if iter < steps - 5:
-                action = traj.get_next_action().clone().detach()
+                action = traj.get_next_action().clone().detach()                    # 1,4
             else:
                 action = traj.get_actions()[iter - steps + 5, :]
 
@@ -82,6 +98,8 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
             # subjected to noise. gt_img is the observation.
             true_pose, true_state, gt_img = agent.step(action, noise=noise)
             true_states = np.vstack((true_states, true_state))
+
+            plt.imshow(gt_img)
 
             # Given the planner's recommended action and the observation, perform state estimation. true_pose
             # is here only to benchmark performance. 
@@ -94,8 +112,10 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
                 # Let the planner know where the agent is estimated to be
                 traj.update_state(state_est)
 
+                #pdb.set_trace()
                 # Replan from the state estimate
                 traj.learn_update(iter)
+                #pdb.set_trace()
         return
 
     except KeyboardInterrupt:
@@ -104,7 +124,6 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
 ####################### END OF MAIN LOOP ##########################################
 
 if __name__ == "__main__":
-
     ### ------ TORCH-NGP SPECIFIC ----- ###
     parser = argparse.ArgumentParser()
     parser.add_argument('path', type=str)
@@ -124,6 +143,8 @@ if __name__ == "__main__":
     parser.add_argument('--upsample_steps', type=int, default=0, help="num steps up-sampled per ray (only valid when NOT using --cuda_ray)")
     parser.add_argument('--update_extra_interval', type=int, default=16, help="iter interval to update extra status (only valid when using --cuda_ray)")
     parser.add_argument('--max_ray_batch', type=int, default=4096, help="batch size of rays at inference to avoid OOM (only valid when NOT using --cuda_ray)")
+    parser.add_argument('--train', action='store_true', help="use CUDA raymarching instead of pytorch")
+    parser.add_argument('--encoding', type=str, default="frequency")
 
     ### network backbone options
     parser.add_argument('--fp16', action='store_true', help="use amp mixed precision training")
@@ -155,11 +176,30 @@ if __name__ == "__main__":
     parser.add_argument('--clip_text', type=str, default='', help="text input for CLIP guidance")
     parser.add_argument('--rand_pose', type=int, default=-1, help="<0 uses no rand pose, =0 only uses rand pose, >0 sample one rand pose every $ known poses")
 
+    ### SR Quantization
+    parser.add_argument('--fxp', action='store_true', help="use fixed point quantization")
+    parser.add_argument('--w_fxp', action='store_true', help="use fixed point weight quantization")
+    parser.add_argument('--w_fxp_bw', type=int, default=8, help="default fixed point bit width")
+    parser.add_argument('--i_fxp', action='store_true', help="use fixed point input quantization")
+    parser.add_argument('--i_fxp_bw', type=int, default=8, help="default fixed point bit width")
+    parser.add_argument('--fxp_accuracy', action='store_true', help='display fixed point occupancy info accuracy')
+    parser.add_argument('--err_fxp', action='store_true', help="use fixed point err quantization")
+    parser.add_argument('--err_fxp_bw', type=int, default=8, help="default fixed point bit width")
+
+    ### SR Simulation Option
+    parser.add_argument('--approx', action='store_true', help="simulate approx simulation")
+    parser.add_argument('--off_loading', action='store_true', help="simulate bg off-loading simulation")
+
+    parser.add_argument('--inp_way', action='store_true', help='use interpolation path ways, not A*')
+    parser.add_argument('--points', type=int, default=10, help='number of interpolation way points')
+
+    print("SR) End of Parsing Argument")
     opt = parser.parse_args()
 
+    print("SR) Set Cuda FloatTensor")
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
     torch.cuda.empty_cache()
-
+    
     if opt.O:
         opt.fp16 = True
         opt.cuda_ray = False
@@ -178,26 +218,92 @@ if __name__ == "__main__":
 
     seed_everything(opt.seed)
 
+    print("SR) Start Model Conf")
     model = NeRFNetwork(
-        encoding="hashgrid",
+        opt = opt,
+        encoding=opt.encoding,
         bound=opt.bound,
         cuda_ray=opt.cuda_ray,
         density_scale=1,
         min_near=opt.min_near,
         density_thresh=opt.density_thresh,
         bg_radius=opt.bg_radius,
+        num_layers=6,
+        hidden_dim=128,
+        fxp=opt.w_fxp,
+        fxp_bw=opt.w_fxp_bw
     )
+    print(model)
 
+    print("SR) Model Eval Start")
     model.eval()
     metrics = [PSNRMeter(),]
+    print("SR) Loss Set")
     criterion = torch.nn.MSELoss(reduction='none')
+    print("SR) Trainer Start")
     trainer = Trainer('ngp', opt, model, device=device, workspace=opt.workspace, criterion=criterion, fp16=opt.fp16, metrics=metrics, use_checkpoint=opt.ckpt)
+    
+    sd = model.sigma_net.state_dict()
+    model.sigma_quant_net.load_state_dict(sd)
+
+    if opt.w_fxp:
+        layer = 0 
+        for name, param in model.named_parameters():
+            if param.dim() != 1:
+                param.requires_grad = False
+                str_list = name.split('.')
+                quant_network = list()
+                quant_network.append('sigma_quant_net')
+
+                network_name = list(frozenset(set(quant_network).intersection(str_list)))
+                if len(network_name) == 0:
+                    continue
+                else:
+                    network_name = network_name[0]
+
+                if network_name == 'sigma_quant_net':
+                    w_int_bw = int(math.log2(param.max()))
+                    print(network_name + " " + str(layer) + "th layer MAX = " + str(param.max()) + ", INT_BW = " + str(w_int_bw) + ", FLOAT_BW = " + str(opt.w_fxp_bw-1-w_int_bw))
+                    print(param.data)
+                    param.data=custom_precision(param.data, w_int_bw, opt.w_fxp_bw-1-w_int_bw, 'fxp') 
+                    print(param.data)
+                    print(network_name + " " + str(layer) + "th layer quantization done")
+
+                    #### SR weight data log ####
+                    weight_filename = "./weight/sigmaNet_layer"+str(layer)+"_weight.csv"
+                    with open (weight_filename, 'w', newline='') as f:
+                        writer = csv.writer(f)
+                        writer.writerows(np.abs(param.data.cpu().numpy()))
+                    layer = layer + 1
+
+
+    else: 
+        layer = 0
+        for name, param in model.named_parameters():
+            if param.dim() != 1:
+                param.requires_grad = False       
+
+                #### SR weight data log ####
+                weight_filename = "./weight/sigmaNet_layer"+str(layer)+"_weight.csv"
+                with open (weight_filename, 'w', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerows(np.abs(param.data.cpu().numpy()))
+                layer = layer + 1
+                
+    
+    sd = model.sigma_quant_net.state_dict()
+    model.sigma_pruned_net.load_state_dict(sd)
+
+
+    print("SR) End of Trainer")
     dataset = NeRFDataset(opt, device=device, type='test')        #Importing dataset in order to get the same camera intrinsics as training
+    print("SR) END OF TORCH-NGP SPECIFIC")
     ### -----  END OF TORCH-NGP SPECIFIC ----- #
 
     ### ----- NERF-NAV PARAMETERS ----- #
 
     ### ESTIMATOR CONFIGS
+    print("SET NERF-NAV PARAM")
     dil_iter = 3        # Number of times to dilate mask around features in observed image
     kernel_size = 5     # Kernel of dilation 
     batch_size = 1024   # How many rays to sample in dilated mask
@@ -216,8 +322,8 @@ if __name__ == "__main__":
     # low_y, high_y
     # low_z, high_z
     body_lims = np.array([
-        [-0.05, 0.05],
-        [-0.05, 0.05],
+        [-0.08, 0.08],
+        [-0.08, 0.08],
         [-0.02, 0.02]
     ])
 
@@ -233,8 +339,32 @@ if __name__ == "__main__":
     ### PLANNER CONFIGS
     # X, Y, Z
     #STONEHENGE
-    start_pos = [0.39, -0.67, 0.2]      # Starting position [x,y,z]
-    end_pos = [-0.4, 0.55, 0.16]        # Goal position
+    
+    #start_pos = [0.359, -0.4, 0.05]   # stone henge path1 10   # Starting position [x,y,z]
+    #start_pos = [-0.4, 0.94, 0.2]     # stone henge path2 12   # Starting position [x,y,z]
+    #start_pos = [0.2, 0.5, 0.2]       # stone henge path3 30   # Starting position [x,y,z]
+    
+    #start_pos = [0.7, -0.6, 0.2] #[0.668, -0.6, 0.2]   # scannet path1 14   # Starting position [x,y,z]
+    #start_pos = [0.6, 0.8, 0.2]     # scannet path2 14   # Starting position [x,y,z]
+
+    start_pos = [-0.7, 0, 0.3]#[-0.5, 0, 0.3]      # replica 8   # Starting position [x,y,z]
+    
+    #start_pos = [-0.9, -0.67, 0.2]      # Starting position [x,y,z]
+    #start_pos = [-0.9, -0.9, 0.3]      # Starting position [x,y,z]
+    #start_pos = [-0.67, -0.67, 0.2]      # Starting position [x,y,z]
+    
+    #end_pos = [0.359, 0.25, 0.05]   # stone henge path1     # Goal position
+    #end_pos = [-0.4, 0.08, 0.2]     # stone henge path2    # Goal position
+    #end_pos = [-0.6, -0.7, 0.2]     # stone henge path3    # Goal position
+
+    #end_pos = [-0.6, 0.42, 0.2] #[-0.62, 0.42, 0.2]      # scannet path1 body:0.08,0.08,0.02    # Goal position
+    #end_pos = [-0.72, 0.05, 0.2]     # scannet path2    # Goal position
+
+    end_pos = [0.8, 0, 0.3] #[0.71, 0, 0.3]         # replica 8  body: 0.08, 0.08, 0.02 # Starting position [x,y,z]
+
+    #end_pos = [0, 0.9, 0.2]        # Goal position
+    #end_pos = [-0.4, 0.55, 0.16]        # Goal position
+    #end_pos = [0, 0.9, 0.3]        # Goal position
     
     # start_pos = [-0.09999999999999926,
     #             -0.8000000000010297,
@@ -340,18 +470,24 @@ if __name__ == "__main__":
     rot = torch.tensor([[0., 0., 1.], [1., 0., 0.], [0., 1., 0.]], device=device, dtype=torch.float32)
     
     # Grabs density from NeRF Neural Network
+    density = lambda x: model.density(x.reshape((-1, 3)) @ rot)
     density_fn = lambda x: model.density(x.reshape((-1, 3)) @ rot)['sigma'].reshape(x.shape[:-1])
+    density_prun_fn = lambda x: model.density(x.reshape((-1, 3)) @ rot)['sigma_prun'].reshape(x.shape[:-1])
+    density_quant_fn = lambda x: model.quant_density(x.reshape((-1, 3)) @ rot).reshape(x.shape[:-1])
+
 
     # Rendering from the NeRF functions
     render_fn = lambda rays_o, rays_d: model.render(rays_o, rays_d, staged=True, bg_color=1., perturb=False, **vars(opt))
     get_rays_fn = lambda pose: get_rays(pose, dataset.intrinsics, dataset.H, dataset.W)
 
     # Main loop
-    simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_fn, get_rays_fn)
+    print("SR) Entering Main Loop")
+    simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density, density_fn, density_prun_fn, density_quant_fn, render_fn, get_rays_fn)
+    print("SR) Exit Main Loop")
     
     # Visualize trajectories in Blender
     bevel_depth = 0.02      # Size of the curve visualized in blender
-    subprocess.run(['blender', blend_file, '-P', 'viz_data_blend.py', '--', opt.workspace, str(bevel_depth)])
+    subprocess.run(['/home/seryeong/blender-2.92.0-linux64/blender', blend_file, '-P', 'viz_data_blend.py', '--', opt.workspace, str(bevel_depth)])
 
     end_text = 'End of simulation'
     print(f'{end_text:.^20}')

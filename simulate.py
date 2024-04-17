@@ -11,6 +11,7 @@ from nerf.provider import NeRFDataset
 
 # Import Helper Classes
 from nav import (Estimator, Agent, Planner, vec_to_rot_matrix, rot_matrix_to_vec)
+import pdb
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -19,6 +20,8 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
     '''
     Main loop that iterates between planning and estimation.
     '''
+
+    
 
     start_state = planner_cfg['start_state']
     end_state = planner_cfg['end_state']
@@ -38,14 +41,65 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
     print("created", basefolder)
   
     # Initialize Planner
-    traj = Planner(start_state, end_state, planner_cfg, density_fn)
+    traj = Planner(start_state, end_state, planner_cfg, density_fn, opt)
 
     traj.basefolder = basefolder
 
-    # Create a coarse trajectory to initialize the planner by using A*. 
+    # #interpol route
+    # #start end 사이 linear한 점찍기 
+    # start_pos = planner_cfg['start_pos']
+    # end_pos = planner_cfg['end_pos']
+    # points = planner_cfg['points']
+    # traj.dh_init(start_pos, end_pos, points)
+
+    # pdb.set_trace()
+    # # density 높은 점들에 대해서 optimize
+    # traj.dh_learn_init()
+
+    print(f'=========== Hybrid Path Planning (Coarse A* & BP & Num Grad) ===========')
+    traj.a_star_init()
+   
+    ### Coarse A* & BP & NUM Grad Based Path Planning ###
+    wayp_tunning_flag = True
+
+    while wayp_tunning_flag:
+        selector_outputs = traj.sr_num_grad_selector()      ## Num Grad & Edge BP Grad
+
+        tunner_outputs = traj.sr_grad_selector(num_grad=selector_outputs['num_grad'], edge_bpgrad=selector_outputs['edge_bpgrad'], occupancy_bmap=selector_outputs['occupancy_bmap'], projected_bmap=selector_outputs['projected_bmap'], edge_cos_sim=selector_outputs['edge_cos_sim'], plan_mode="hybrid", edge_skip=selector_outputs['edge_skip'])     # Determine Num Grad vs BP Grad
+
+        traj.sr_wayp_tunner( tunner_outputs['avg_bpgrad'], "hybrid" )     ## Update self.states
+
+        wayp_occupancy_bmap = traj.sr_get_wayp_occupancy()      ## Check Occupancy After Wayp Tunning
+
+        wayp_tunning_flag = (wayp_occupancy_bmap.sum() != 0)    ## Make Coarse A* & BP & Num Grad Tunning Flag
+
+    print(f'Hybrid Waypoints Tunning Done')
+    traj.sr_save_tunning_poses(filename="hybrid_tuning_path.json")     # Save self.states
+
+    ### BP Based Path Planning ###
+    pdb.set_trace()
+    print(f'=========== Original Path Planning (Coarse A* & BP) ===========')
     traj.a_star_init()
 
-    # From the A* initialization, perform gradient descent on the flat states of agent to get a trajectory
+    wayp_tunning_flag = True
+
+    while wayp_tunning_flag:
+        selector_outputs = traj.sr_num_grad_selector()      ## Num Grad & Edge BP Grad
+
+        tunner_outputs = traj.sr_grad_selector(num_grad=selector_outputs['num_grad'], edge_bpgrad=selector_outputs['edge_bpgrad'], occupancy_bmap=selector_outputs['occupancy_bmap'], projected_bmap=selector_outputs['projected_bmap'], edge_cos_sim=selector_outputs['edge_cos_sim'], plan_mode="bp", edge_skip=selector_outputs['edge_skip'])     # Determine Num Grad vs BP Grad
+
+        traj.sr_wayp_tunner( tunner_outputs['avg_bpgrad'], "bp" )     ## Update self.states
+
+        wayp_occupancy_bmap = traj.sr_get_wayp_occupancy()      ## Check Occupancy After Wayp Tunning
+
+        wayp_tunning_flag = (wayp_occupancy_bmap.sum() != 0)    ## Make Coarse A* & BP & Num Grad Tunning Flag
+        print(f'Tunning... {wayp_occupancy_bmap}')
+
+    print(f'BP Waypoints Tunning Done')
+    traj.sr_save_tunning_poses(filename="bp_tuning_path.json")     # Save self.states
+    pdb.set_trace()
+
+    # From the A* initialization, perform gradient descent on the flat states of agent to get a trajectory()
     # that minimizes collision and control effort.
     traj.learn_init()
 
@@ -154,6 +208,18 @@ if __name__ == "__main__":
     parser.add_argument('--error_map', action='store_true', help="use error map to sample rays")
     parser.add_argument('--clip_text', type=str, default='', help="text input for CLIP guidance")
     parser.add_argument('--rand_pose', type=int, default=-1, help="<0 uses no rand pose, =0 only uses rand pose, >0 sample one rand pose every $ known poses")
+    
+    
+    parser.add_argument('--total_path_num', type=int, default=1, help="set total path numbers")
+    parser.add_argument('--a_star_grid', type=int, default=20, help="set a* grid size")
+    parser.add_argument('--random_path', action='store_true', help="set start/end points select policy")
+    parser.add_argument('--start_pos', nargs='*',type=float, default=[-1]*3, help="set start point of path")
+    parser.add_argument('--end_pos', nargs='*',type=float, default=[-1]*3, help="set end point of path")
+    parser.add_argument('--occupancy_th', type=float, default=0.3, help="set occupancy threshold value")
+    parser.add_argument('--cosim_th', type=float, default=0.95, help="set cos sim threshold for deciding num grad selection")
+    parser.add_argument('--tunning_vec_dis', type=float, default=0.03, help="set collision avoidance direction vec dist")
+    parser.add_argument('--bp_tunning_vec_dis', type=float, default=0.02, help="set collision avoidance direction vec dist ONLY BP")
+    
 
     opt = parser.parse_args()
 
@@ -232,9 +298,18 @@ if __name__ == "__main__":
 
     ### PLANNER CONFIGS
     # X, Y, Z
-    #STONEHENGE
-    start_pos = [0.39, -0.67, 0.2]      # Starting position [x,y,z]
-    end_pos = [-0.4, 0.55, 0.16]        # Goal position
+    #STONEHENGE 
+    # start_pos = [0, 0.8726, 0.3845]       # Starting position [x,y,z] [-0.99, -0.80, 0.10]
+    # end_pos = [-0.3586, 0.4818, 0.1764]        # Goal position [-0.60, -0.30, 0.10]
+    
+
+    # start_pos = [0, 0.87, 0.38] # Start
+    # end_pos = [0.28, 0.55, 0.24] # Mid
+    # points = 6
+
+    start_pos = [0.28, 0.55, 0.24] # Mid
+    end_pos = [-0.36, 0.48, 0.18] # End z=0.18
+    points = 10                       
     
     # start_pos = [-0.09999999999999926,
     #             -0.8000000000010297,
@@ -253,8 +328,8 @@ if __name__ == "__main__":
     T_final = 2.                # Final time of simulation
     steps = 20                  # Number of time steps to run simulation
 
-    planner_lr = 0.001          # Learning rate when learning a plan
-    epochs_init = 2500          # Num. Gradient descent steps to perform during initial plan
+    planner_lr = 0.0001          # Learning rate when learning a plan
+    epochs_init = 300          # Num. Gradient descent steps to perform during initial plan
     fade_out_epoch = 0
     fade_out_sharpness = 10
     epochs_update = 250         # Num. grad descent steps to perform when replanning
@@ -291,7 +366,11 @@ if __name__ == "__main__":
     'g': g,
     'mass': mass,
     'body': body_lims,
-    'nbins': body_nbins
+    'nbins': body_nbins,
+
+    'start_pos' : start_pos, 
+    'end_pos' : end_pos, 
+    'points' : points
     }
 
     agent_cfg = {

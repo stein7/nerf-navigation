@@ -6,6 +6,8 @@ from encoding import get_encoder
 from activation import trunc_exp
 from .renderer import NeRFRenderer
 
+import pdb
+from lib.dh_approx import *
 
 class NeRFNetwork(NeRFRenderer):
     def __init__(self,
@@ -20,6 +22,7 @@ class NeRFNetwork(NeRFRenderer):
                  num_layers_bg=2,
                  hidden_dim_bg=64,
                  bound=1,
+                 opt=None,
                  **kwargs,
                  ):
         super().__init__(bound, **kwargs)
@@ -29,7 +32,7 @@ class NeRFNetwork(NeRFRenderer):
         self.hidden_dim = hidden_dim
         self.geo_feat_dim = geo_feat_dim
         self.encoder, self.in_dim = get_encoder(encoding, desired_resolution=2048 * bound)
-
+        self.opt = opt
         sigma_net = []
         for l in range(num_layers):
             if l == 0:
@@ -42,7 +45,15 @@ class NeRFNetwork(NeRFRenderer):
             else:
                 out_dim = hidden_dim
             
-            sigma_net.append(nn.Linear(in_dim, out_dim, bias=False))
+            if not opt.test: 
+                sigma_net.append(DH(opt=opt, layer=l, in_features=in_dim, out_features=out_dim, training=True, bias=False))
+            elif opt.a_star:
+                sigma_net.append(DH(opt=opt, layer=l, in_features=in_dim, out_features=out_dim, a_star=True, bias=False))
+            elif opt.bp:
+                sigma_net.append(DH(opt=opt, layer=l, in_features=in_dim, out_features=out_dim, bp=True, bias=False))
+            else:
+                sigma_net.append(nn.Linear(in_dim, out_dim, bias=False))
+            
 
         self.sigma_net = nn.ModuleList(sigma_net)
 
@@ -129,6 +140,53 @@ class NeRFNetwork(NeRFRenderer):
         x = self.encoder(x, bound=self.bound)
         h = x
         for l in range(self.num_layers):
+            self.sigma_net[l].a_star = False 
+            self.sigma_net[l].bp = False
+            
+            h = self.sigma_net[l](h)
+            if l != self.num_layers - 1:
+                h = F.relu(h, inplace=True)
+
+        #sigma = F.relu(h[..., 0])
+        sigma = trunc_exp(h[..., 0])
+        geo_feat = h[..., 1:]
+
+        return {
+            'sigma': sigma,
+            'geo_feat': geo_feat,
+        }
+        
+    def a_star_density(self, x):
+        # x: [N, 3], in [-bound, bound]
+
+        x = self.encoder(x, bound=self.bound)
+        h = x
+        for l in range(self.num_layers):
+            self.sigma_net[l].a_star = True 
+            self.sigma_net[l].bp = False 
+            
+            h = self.sigma_net[l](h)
+            if l != self.num_layers - 1:
+                h = F.relu(h, inplace=True)
+
+        #sigma = F.relu(h[..., 0])
+        sigma = trunc_exp(h[..., 0])
+        geo_feat = h[..., 1:]
+
+        return {
+            'sigma': sigma,
+            'geo_feat': geo_feat,
+        }
+        
+    def bp_density(self, x):
+        # x: [N, 3], in [-bound, bound]
+
+        x = self.encoder(x, bound=self.bound)
+        h = x
+        for l in range(self.num_layers):
+            self.sigma_net[l].a_star = False 
+            self.sigma_net[l].bp = True 
+            
             h = self.sigma_net[l](h)
             if l != self.num_layers - 1:
                 h = F.relu(h, inplace=True)

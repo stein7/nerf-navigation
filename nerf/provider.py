@@ -13,7 +13,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from .utils import get_rays, srgb_to_linear, torch_vis_2d
-
+import pdb
 
 # ref: https://github.com/NVlabs/instant-ngp/blob/b76004c8cf478880227401ae763be4c02f80b62f/include/neural-graphics-primitives/nerf_loader.h#L50
 def nerf_matrix_to_ngp(pose, scale=0.33, offset=[0, 0, 0]):
@@ -323,6 +323,7 @@ class NeRFDataset:
         return results
 
     def dataloader(self):
+        
         size = len(self.poses)
         if self.training and self.rand_pose > 0:
             size += size // self.rand_pose # index >= size means we use random pose.

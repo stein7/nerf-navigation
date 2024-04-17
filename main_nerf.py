@@ -91,6 +91,7 @@ if __name__ == '__main__':
         min_near=opt.min_near,
         density_thresh=opt.density_thresh,
         bg_radius=opt.bg_radius,
+        opt=opt
     )
     
     print(model)

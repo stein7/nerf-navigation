@@ -1,0 +1,69 @@
+H: 1080
+O: false
+W: 1920
+
+a_star_sampling: true
+interp_sampling: false
+
+a_star_approx: true
+bp_approx: true
+a_star: true
+bp: false
+
+
+
+a_star_MSB_scaling: 0.1
+a_star_approx_scaling: 0.008
+bg_radius: -1
+body_size:
+- 0.08
+- 0.08
+- 0.05
+bound: 2.0
+
+ckpt: latest
+clip_text: ''
+color_space: srgb
+cuda_ray: false
+density_thresh: 10
+dt_gamma: 0.0
+end_pos:
+- -0.72
+- 0.05
+- 0.2
+error_map: false
+ff: false
+fovy: 50
+fp16: false
+gui: false
+inp_points:
+- 14.0
+iters: 30000
+lr: 0.01
+max_ray_batch: 4096
+max_spp: 64
+max_steps: 1024
+min_near: 0.2
+num_rays: 4096
+num_steps: 512
+offset:
+- 0
+- 0
+- 0
+path: data/scannetroom
+preload: false
+radius: 5
+rand_pose: -1
+random_path: false
+scale: 1.0
+seed: 0
+start_pos:
+- 0.6
+- 0.8
+- 0.2
+tcnn: false
+test: true
+update_extra_interval: 16
+upsample_steps: 0
+waypoint: 4
+workspace: custom_scannetroom

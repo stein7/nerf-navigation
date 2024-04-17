@@ -11,20 +11,25 @@ from nerf.provider import NeRFDataset
 
 # Import Helper Classes
 from nav import (Estimator, Agent, Planner, vec_to_rot_matrix, rot_matrix_to_vec)
+import pdb
+import yaml
+import lib.config as config
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 ####################### MAIN LOOP ##########################################
-def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_fn, get_rays_fn):
+def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_fn, get_rays_fn, model):
     '''
     Main loop that iterates between planning and estimation.
     '''
+
+    
 
     start_state = planner_cfg['start_state']
     end_state = planner_cfg['end_state']
     
     # Creates a workspace to hold all the trajectory data
-    basefolder = "paths" / pathlib.Path(planner_cfg['exp_name'])
+    basefolder = pathlib.Path(planner_cfg['exp_name'])  /  "paths"
     if basefolder.exists():
         print(basefolder, "already exists!")
         if input("Clear it before continuing? [y/N]:").lower() == "y":
@@ -38,14 +43,37 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
     print("created", basefolder)
   
     # Initialize Planner
-    traj = Planner(start_state, end_state, planner_cfg, density_fn)
+    traj = Planner(start_state, end_state, planner_cfg, density_fn, opt, model)
 
     traj.basefolder = basefolder
+    pdb.set_trace()
+    #interpol route
+    if opt.random_path:
+        traj.dh_init_random()
+    elif opt.a_star_sampling:
+        traj.a_star_init()
+    elif opt.interp_sampling:
+        #start end 사이 linear한 점찍기 
+        start_pos = planner_cfg['start_pos']
+        end_pos = planner_cfg['end_pos']
+        points = planner_cfg['points']
+        traj.dh_init(start_pos, end_pos, points)
 
-    # Create a coarse trajectory to initialize the planner by using A*. 
-    traj.a_star_init()
+    
+    pdb.set_trace()
+    # density 높은 점들에 대해서 optimize
+    traj.dh_learn_init()
+    
+    return
 
-    # From the A* initialization, perform gradient descent on the flat states of agent to get a trajectory
+    # #coarse A* route
+    pdb.set_trace()
+    traj.a_star_init() #origin
+    pdb.set_trace()
+    traj.dh_learn_init()
+
+    pdb.set_trace()
+    # From the A* initialization, perform gradient descent on the flat states of agent to get a trajectory()
     # that minimizes collision and control effort.
     traj.learn_init()
 
@@ -104,9 +132,10 @@ def simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_f
 ####################### END OF MAIN LOOP ##########################################
 
 if __name__ == "__main__":
-
+    
     ### ------ TORCH-NGP SPECIFIC ----- ###
     parser = argparse.ArgumentParser()
+
     parser.add_argument('path', type=str)
     parser.add_argument('-O', action='store_true', help="equals --fp16 --cuda_ray --preload")
     parser.add_argument('--test', action='store_true', help="test mode")
@@ -154,9 +183,35 @@ if __name__ == "__main__":
     parser.add_argument('--error_map', action='store_true', help="use error map to sample rays")
     parser.add_argument('--clip_text', type=str, default='', help="text input for CLIP guidance")
     parser.add_argument('--rand_pose', type=int, default=-1, help="<0 uses no rand pose, =0 only uses rand pose, >0 sample one rand pose every $ known poses")
+    
+    
+    parser.add_argument('--waypoint', type=int, default=4)
+    parser.add_argument('--start_pos', nargs='*',type=float, default=[-1]*3, help="set start point of path")
+    parser.add_argument('--end_pos', nargs='*',type=float, default=[-1]*3, help="set end point of path")
+    parser.add_argument('--body_size', nargs='*',type=float, default=[-1]*3, help="set robot body size")
+    parser.add_argument('--inp_points', nargs='*',type=float, default=[-1]*3, help="set robot body size")
+    parser.add_argument('--random_path', action='store_true', help="set start/end points select policy")
+    
+    
+    parser.add_argument('--a_star', action='store_true')
+    parser.add_argument('--bp', action='store_true')
 
+    parser.add_argument('--a_star_approx_scaling', type=float, default=0.1, help="set robot body size")
+    parser.add_argument('--a_star_MSB_scaling', type=float, default=0.1, help="set robot body size")
+
+    parser.add_argument('--config', type=str, default="lib/config.yaml")
     opt = parser.parse_args()
-
+    args_list = []
+    cfg = config.parse_config_yaml_dict(yaml_path=opt.config)
+    opt = config.convert_to_namespace(dict_in=cfg, args=opt, dont_care=args_list)
+    
+    opt2 = parser.parse_args()
+    opt.path      = opt2.path
+    opt.workspace = opt2.workspace
+    opt.start_pos = opt2.start_pos
+    opt.end_pos   = opt2.end_pos
+    opt.a_star_approx_scaling = opt2.a_star_approx_scaling
+    
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
     torch.cuda.empty_cache()
 
@@ -186,8 +241,11 @@ if __name__ == "__main__":
         min_near=opt.min_near,
         density_thresh=opt.density_thresh,
         bg_radius=opt.bg_radius,
+        opt=opt
     )
+    print(model)
 
+    pdb.set_trace()
     model.eval()
     metrics = [PSNRMeter(),]
     criterion = torch.nn.MSELoss(reduction='none')
@@ -212,17 +270,22 @@ if __name__ == "__main__":
     ### AGENT CONFIGS
 
     # Extent of the agent body, centered at origin.
-    # low_x, high_x
+    # low_x, high_x +/- 0.05, 0.05, 0.02
     # low_y, high_y
-    # low_z, high_z
-    body_lims = np.array([
-        [-0.05, 0.05],
-        [-0.05, 0.05],
-        [-0.02, 0.02]
-    ])
+    # low_z, high_z 
 
-    # Discretizations of sample points in x,y,z direction
-    body_nbins = [10, 10, 5]
+    body_lims = np.array([ 
+        [-0.08, 0.08],
+        [-0.08, 0.08],
+        [-0.05, 0.05]
+    ])
+    body_lims = np.array([
+        [-opt.body_size[0], opt.body_size[0] ],
+        [-opt.body_size[1], opt.body_size[1] ],
+        [-opt.body_size[2], opt.body_size[2] ]
+    ])
+    # Discretizations of sample points in x,y,z direction # 10, 10, 5
+    body_nbins = [5, 5, 5]
 
     mass = 1.           # mass of drone
     g = 10.             # gravitational constant
@@ -232,10 +295,22 @@ if __name__ == "__main__":
 
     ### PLANNER CONFIGS
     # X, Y, Z
-    #STONEHENGE
-    start_pos = [0.39, -0.67, 0.2]      # Starting position [x,y,z]
-    end_pos = [-0.4, 0.55, 0.16]        # Goal position
+    #STONEHENGE 
+    # start_pos = [0, 0.8726, 0.3845]       # Starting position [x,y,z] [-0.99, -0.80, 0.10]
+    # end_pos = [-0.3586, 0.4818, 0.1764]        # Goal position [-0.60, -0.30, 0.10]
     
+
+    # start_pos = [0, 0.87, 0.38] # Start
+    # end_pos = [0.28, 0.55, 0.24] # Mid
+    # points = 6
+    
+    start_pos = [0.6, 0.8, 0.2] # Mid
+    end_pos = [-0.72, 0.05, 0.2] # End z=0.18
+    points = 14                  
+    start_pos = opt.start_pos
+    end_pos = opt.end_pos
+    points = opt.inp_points
+
     # start_pos = [-0.09999999999999926,
     #             -0.8000000000010297,
     #             0.0999999999999695]
@@ -254,7 +329,7 @@ if __name__ == "__main__":
     steps = 20                  # Number of time steps to run simulation
 
     planner_lr = 0.001          # Learning rate when learning a plan
-    epochs_init = 2500          # Num. Gradient descent steps to perform during initial plan
+    epochs_init = 300          # Num. Gradient descent steps to perform during initial plan
     fade_out_epoch = 0
     fade_out_sharpness = 10
     epochs_update = 250         # Num. grad descent steps to perform when replanning
@@ -291,7 +366,11 @@ if __name__ == "__main__":
     'g': g,
     'mass': mass,
     'body': body_lims,
-    'nbins': body_nbins
+    'nbins': body_nbins,
+
+    'start_pos' : start_pos, 
+    'end_pos' : end_pos, 
+    'points' : points
     }
 
     agent_cfg = {
@@ -347,11 +426,11 @@ if __name__ == "__main__":
     get_rays_fn = lambda pose: get_rays(pose, dataset.intrinsics, dataset.H, dataset.W)
 
     # Main loop
-    simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_fn, get_rays_fn)
+    simulate(planner_cfg, agent_cfg, filter_cfg, extra_cfg, density_fn, render_fn, get_rays_fn, model)
     
-    # Visualize trajectories in Blender
-    bevel_depth = 0.02      # Size of the curve visualized in blender
-    subprocess.run(['blender', blend_file, '-P', 'viz_data_blend.py', '--', opt.workspace, str(bevel_depth)])
+    # # Visualize trajectories in Blender
+    # bevel_depth = 0.02      # Size of the curve visualized in blender
+    # subprocess.run(['blender', blend_file, '-P', 'viz_data_blend.py', '--', opt.workspace, str(bevel_depth)])
 
     end_text = 'End of simulation'
     print(f'{end_text:.^20}')

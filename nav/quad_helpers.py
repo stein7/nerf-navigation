@@ -5,6 +5,9 @@ import heapq
 import matplotlib.pyplot as plt
 from nav.math_utils import skew_matrix
 
+import pdb
+import time
+
 class Simulator:
 
     def __init__(self, start_state):
@@ -198,18 +201,60 @@ def next_rotation(R, omega, dt):
     next_R = R @ exp_i
     return next_R
 
-def astar(occupied, start, goal):
+def astar(occupied, start, goal, density_fn, robot_body, side):
+    
+    def collision(point): # 충돌하는 지점이 있는지 여부
+        
+        kernel_size = 5
+        grid_size = side//kernel_size #PARAM grid size 
+        threshold = 0.3
+        
+        squares = 2* (torch.tensor( list(point) , dtype=torch.float)/grid_size) -1
+        body_to_world = ( robot_body.T + squares[..., None] ).swapdims(1, 0)
+        colision_prob = torch.mean( density_fn( body_to_world )**2, dim = -1 ) >= threshold
+        return colision_prob
+    
     def heuristic(a, b):
-        return np.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2 + (b[2] - a[2]) ** 2)
+        L2_distance = np.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2 + (b[2] - a[2]) ** 2)
+        # print(f'L2 distance: {L2_distance}')
+        return L2_distance
 
     def inbounds(point):
-        for x, size in zip(point, occupied.shape):
-            if x < 0 or x >= size: return False
-        return True
+        # if not (10 < list(point)[2] < 14): # 이거 z축 아래로 내려가는걸 방지하기위함(stonehenge)
+        #     return False
+        # pdb.set_trace()
+        # x_min = 3 * side / 100
+        # z_min = 10 * side / 100
+        # z_max = 15 * side / 100
+        # if (list(point)[0] < x_min) or (list(point)[2] < z_min) or (z_max < list(point)[2] ): # 이거 방 위로 솟구치는거 방지위함(apt2)
+        #     return False
+        # z_min = 10 * side / 100
+        # z_max = 15 * side / 100
+        # if (list(point)[2] < z_min) or (z_max < list(point)[2] ): # 이거 방 위로 솟구치는거 방지위함(rep apt1)
+        #     return False
+        z_min = 10 * side / 100
+        z_max = 16 * side / 100
+        if (list(point)[2] < z_min) or (z_max < list(point)[2] ): # 이거 방 위로 솟구치는거 방지위함(rep hotel)
+            return False
+        for x, size in zip(point, occupied.shape): 
+            
+            if x < 0 or x >= size: return False #inbound에 없는 조건
+        return True #inbound에 있음
 
     neighbors = [( 1,0,0),(-1, 0, 0),
                  ( 0,1,0),( 0,-1, 0),
-                 ( 0,0,1),( 0, 0,-1)]
+                 ( 0,0,1),( 0, 0,-1),
+
+                 ( 1,1,0), (1,-1,0), (-1,1,0), (-1,-1,0),
+
+                 ( 1,0,1),(-1, 0, 1),
+                 ( 0,1,1),( 0,-1, 1),
+                 ( 1,1,1), (1,-1,1), (-1,1,1), (-1,-1,1),
+
+                 ( 1,0,-1),(-1, 0, -1),
+                 ( 0,1,-1),( 0,-1, -1),
+                 ( 1,1,-1), (1,-1,-1), (-1,1,-1), (-1,-1,-1)
+                 ]
 
     close_set = set()
 
@@ -218,28 +263,40 @@ def astar(occupied, start, goal):
 
     assert not occupied[start]
     assert not occupied[goal]
-
+    if collision(start):  #충돌하는 경우 pass
+        print('start collision!!')
+        return
+    elif collision(goal):
+        print('end collision!!')
+        return
     open_heap = []
     heapq.heappush(open_heap, (heuristic(start, goal), start))
-
+    
     while open_heap:
+        # pdb.set_trace()
         current = heapq.heappop(open_heap)[1]
 
         if current == goal:
+            # pdb.set_trace()
             data = []
             while current in came_from:
                 data.append(current)
                 current = came_from[current]
+                # print(f'path: {data}')
             assert current == start
             data.append(current)
+            
+            # pdb.set_trace()
             return list(reversed(data))
+            
 
         close_set.add(current)
-
         for i, j, k in neighbors:
             neighbor = (current[0] + i, current[1] + j, current[2] + k)
-            if not inbounds( neighbor ):
+            if not inbounds( neighbor ): #inbound에 없다면(False가 나온다면 스킵)
                 continue
+            # if collision(neighbor): #충돌하는 경우 pass  A* body(edit) version
+            #     continue
 
             if occupied[neighbor]:
                 continue
@@ -252,10 +309,164 @@ def astar(occupied, start, goal):
 
                 fscore = tentative_g_score + heuristic(neighbor, goal)
                 node = (fscore, neighbor)
+
                 if node not in open_heap:
                     heapq.heappush(open_heap, node) 
+                
+    data = []
+    while current in came_from:
+        data.append(current)
+        current = came_from[current]
+        # print(f'path: {data}')
+    assert current == start
+    data.append(current)
+    print("Failed to find path!")
+    return 0
+    # raise ValueError("Failed to find path!")
+    
+def astar_(occupied, start, goal, density_fn, robot_body, side, dataset, opt):
+    
+    def collision(point): 
+        
+        kernel_size = 5
+        grid_size = side//kernel_size #PARAM grid size 
+        threshold = 0.3
+        
+        squares = 2* (torch.tensor( list(point) , dtype=torch.float)/grid_size) -1
 
-    raise ValueError("Failed to find path!")
+        body_to_world = ( robot_body.T + squares[..., None] ).swapdims(1, 0)
+        colision_prob = torch.mean( density_fn( body_to_world )**2, dim = -1 ) >= threshold
+        return colision_prob
+    
+    def heuristic(a, b):
+        L2_distance = np.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2 + (b[2] - a[2]) ** 2)
+        # print(f'L2 distance: {L2_distance}')
+        return L2_distance
+
+    def inbounds(point):
+        z_min = 10 * side / 100
+        z_max = 16 * side / 100
+        if (list(point)[2] < z_min) or (z_max < list(point)[2] ): 
+            return False
+        for x, size in zip(point, occupied.shape): 
+            
+            if x < 0 or x >= size: return False #inbound에 없는 조건
+        return True #inbound에 있음
+
+
+    ## Set A* Version ##
+    original = True
+    edit = False
+   
+    
+    if original:
+        neighbors = [( 1,0,0),(-1, 0, 0),
+                     ( 0,1,0),( 0,-1, 0),
+                     ( 0,0,1),( 0, 0,-1)]
+    elif edit:
+        neighbors = [( 1,0,0),(-1, 0, 0),
+                     ( 0,1,0),( 0,-1, 0),
+                     ( 0,0,1),( 0, 0,-1),
+    
+                     ( 1,1,0), ( 1,-1,0), 
+                     (-1,1,0), (-1,-1,0),
+    
+                     ( 1,0,1),(-1, 0, 1),
+                     ( 0,1,1),( 0,-1, 1),
+                     ( 1,1,1),(1,-1,1), 
+                     (-1,1,1), (-1,-1,1),
+    
+                     ( 1,0,-1),(-1, 0, -1),
+                     ( 0,1,-1),( 0,-1, -1),
+                     ( 1,1,-1), (1,-1,-1), 
+                     (-1,1,-1), (-1,-1,-1)
+                     ]
+    
+
+    close_set = set()
+
+    came_from = {}
+    gscore = {start: 0}
+
+    assert not occupied[start]
+    assert not occupied[goal]
+
+    if collision(start):  
+        print('start collision!!')
+        return
+    elif collision(goal):
+        print('end collision!!')
+        return
+
+    print(f'start: {start}')
+    print(f'goal: {goal}')
+    grid_z = occupied.shape[0]
+    grid_x = occupied.shape[1]
+    grid_y = occupied.shape[2]
+
+    open_heap = []
+    heapq.heappush(open_heap, (heuristic(start, goal), start))
+    
+    while open_heap:
+        current = heapq.heappop(open_heap)[1]
+
+        if current == goal:
+            data = []
+            #print(f'came_form: {came_from}')
+            while current in came_from:
+                data.append(current)
+                #print(f'current: {current}, came_from[current]: {came_from[current]}')
+                current = came_from[current]
+            assert current == start
+            data.append(current)
+            
+            # path waypoints by astar
+            return list(reversed(data))
+            
+
+        close_set.add(current)
+        for i, j, k in neighbors:
+            neighbor = (current[0] + i, current[1] + j, current[2] + k)
+
+            if neighbor[0] >= grid_x or  neighbor[1] >= grid_y or neighbor[2] >= grid_z:
+                continue
+            
+            if dataset != "stonehenge":
+                if not inbounds( neighbor ): #inbound에 없다면(False가 나온다면 스킵)
+                    continue
+            
+            if edit:
+                if collision(neighbor): # A* edit version
+                    continue
+            if original:
+                if occupied[neighbor]:  # A* original version
+                    continue
+
+
+            tentative_g_score = gscore[current] + 1
+
+            if tentative_g_score < gscore.get(neighbor, float("inf")):
+                came_from[neighbor] = current
+                gscore[neighbor] = tentative_g_score
+
+                fscore = tentative_g_score + heuristic(neighbor, goal)
+                node = (fscore, neighbor)                                   # Make Node --> (L2 dist + score, (node))
+
+                if node not in open_heap:
+                    heapq.heappush(open_heap, node) 
+                
+
+    data = []
+    while current in came_from:
+        data.append(current)
+        current = came_from[current]
+        # print(f'path: {data}')
+    assert current == start
+    data.append(current)
+    print("Failed to find path!")
+    return 0
+    # raise ValueError("Failed to find path!")
+
 
 def settings():
     pass
